@@ -1,0 +1,81 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/a-h/templ"
+	"yourapp/internal/models"
+)
+
+templ MaterialList(materials []models.Material) {
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<h2>Materials</h2>
+			<button class="btn btn-primary" hx-get="/materials/new" hx-target="#content" hx-swap="innerHTML">New</button>
+		</div>
+
+		<table class="table table-bordered table-hover bg-white">
+			<thead class="table-light">
+				<tr>
+					<th>Name</th>
+					<th>Description</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, m := range materials {
+					<tr>
+						<td>{ m.Name }</td>
+						<td>{ m.Description }</td>
+						<td>
+							<a href={ fmt.Sprintf("/materials/%s", m.ID) } class="btn btn-sm btn-outline-secondary">View</a>
+							<button hx-get={ fmt.Sprintf("/materials/%s/edit", m.ID) } hx-target="#content" class="btn btn-sm btn-outline-primary ms-2">Edit</button>
+							<button hx-delete={ fmt.Sprintf("/materials/%s", m.ID) } hx-confirm="Delete material?" class="btn btn-sm btn-outline-danger ms-2">Delete</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+}
+
+templ MaterialView(material models.Material, products []models.Product, files []models.File, otherNames []string) {
+		<h2>{ material.Name }</h2>
+		<p class="text-muted">{ material.Description }</p>
+
+		<h5>Other names</h5>
+		<ul>
+			for _, n := range otherNames {
+				<li>{ n }</li>
+			}
+		</ul>
+
+		<h5>Pinned Files</h5>
+		for _, f := range files {
+			@FileCard(f)
+		}
+
+		<h5>Used In Products</h5>
+		<table class="table table-sm table-striped">
+			<thead><tr><th>Product</th><th>Count</th></tr></thead>
+			<tbody>
+				for _, p := range products {
+					<tr>
+						<td><a href={ fmt.Sprintf("/products/%s", p.ID) }>{ p.Name }</a></td>
+						<td>{ p.Count }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+}
+
+templ MaterialForm(material *models.Material, action string) {
+	<form hx-post={ action } hx-target="#content" class="bg-white p-3 rounded shadow-sm">
+		<div class="mb-3">
+			<label class="form-label">Name</label>
+			<input name="name" value={ material.Name } class="form-control"/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">Description</label>
+			<textarea name="description" class="form-control">{ material.Description }</textarea>
+		</div>
+		<button type="submit" class="btn btn-primary">Save</button>
+	</form>
+}

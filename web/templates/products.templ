@@ -1,0 +1,70 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/a-h/templ"
+	"yourapp/internal/models"
+)
+
+templ ProductList(products []models.Product) {
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<h2>Products</h2>
+			<button class="btn btn-primary" hx-get="/products/new" hx-target="#content" hx-swap="innerHTML">New</button>
+		</div>
+
+		<table class="table table-bordered table-hover bg-white">
+			<thead class="table-light">
+				<tr><th>Name</th><th>Description</th><th>Actions</th></tr>
+			</thead>
+			<tbody>
+				for _, p := range products {
+					<tr>
+						<td>{ p.Name }</td>
+						<td>{ p.Description }</td>
+						<td>
+							<a href={ fmt.Sprintf("/products/%s", p.ID) } class="btn btn-sm btn-outline-secondary">View</a>
+							<button hx-get={ fmt.Sprintf("/products/%s/edit", p.ID) } hx-target="#content" class="btn btn-sm btn-outline-primary ms-2">Edit</button>
+							<button hx-delete={ fmt.Sprintf("/products/%s", p.ID) } hx-confirm="Delete product?" class="btn btn-sm btn-outline-danger ms-2">Delete</button>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+}
+
+templ ProductView(product models.Product, materials []models.Material, files []models.File) {
+		<h2>{ product.Name }</h2>
+		<p class="text-muted">{ product.Description }</p>
+
+		<h5>Files</h5>
+		for _, f := range files {
+			@FileCard(f)
+		}
+
+		<h5>Materials</h5>
+		<table class="table table-sm table-striped">
+			<thead><tr><th>Material</th><th>Count</th></tr></thead>
+			<tbody>
+				for _, m := range materials {
+					<tr>
+						<td><a href={ fmt.Sprintf("/materials/%s", m.ID) }>{ m.Name }</a></td>
+						<td>{ m.Count }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+}
+
+templ ProductForm(product *models.Product, action string) {
+	<form hx-post={ action } hx-target="#content" class="bg-white p-3 rounded shadow-sm">
+		<div class="mb-3">
+			<label class="form-label">Name</label>
+			<input name="name" value={ product.Name } class="form-control"/>
+		</div>
+		<div class="mb-3">
+			<label class="form-label">Description</label>
+			<textarea name="description" class="form-control">{ product.Description }</textarea>
+		</div>
+		<button type="submit" class="btn btn-primary">Save</button>
+	</form>
+}
