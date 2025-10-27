@@ -2,25 +2,25 @@ package http
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
-	"time"
 
-	"github.com/s-588/BOMViewer/web/templates"
+	"github.com/s-588/BOMViewer/cmd/http/handlers"
+	"github.com/s-588/BOMViewer/internal/db"
 )
 
 type Server struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	mux    *http.ServeMux
-	Port   string
+	ctx     context.Context
+	mux     *http.ServeMux
+	cancel  context.CancelFunc
+	handler *handlers.Handler
+	Port    string
 }
 
-func NewServer(cancel context.CancelFunc, port string) *Server {
+func NewServer(cancel context.CancelFunc, port string, repo *db.Repository) *Server {
 	return &Server{
-		cancel: cancel,
-		mux:    http.NewServeMux(),
-		Port:   port,
+		cancel:  cancel,
+		handler: handlers.NewHandler(repo),
+		Port:    port,
 	}
 }
 
@@ -30,19 +30,39 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) setupPaths() {
+	s.mux.HandleFunc("POST /exit", s.stop)
+
 	s.mux.Handle("/static/", http.FileServer(http.Dir("web/")))
-	s.mux.HandleFunc("GET /welcome", s.welcomePage)
-	s.mux.HandleFunc("POST /debug/exit", s.stop)
+	s.mux.HandleFunc("GET /", s.handler.RootPage)
+
+	s.mux.HandleFunc("GET /materials", s.handler.MaterialListHandler)                              // return list of materials
+	s.mux.HandleFunc("POST /materials", s.handler.MaterialNewHandler)                              // create new material, return new list of materials
+	s.mux.HandleFunc("GET /materials/{id}", s.handler.MaterialViewHandler)                         // return material by id
+	s.mux.HandleFunc("POST /materials/{id}", s.handler.MaterialUpdateHandler)                      // update material, return updated material
+	s.mux.HandleFunc("GET /materials/{id}/products", s.handler.MaterialProductListHandler)         // return list of products that use this material
+	s.mux.HandleFunc("GET /materials/{id}/files", s.handler.MaterialFileListHandler)               // return list of pinned files
+	s.mux.HandleFunc("POST /materials/{id}/files", s.handler.MaterialFileCreateHandler)            // attach new file
+	s.mux.HandleFunc("DELETE /materials/{id}/files/{fileID}", s.handler.MaterialFileDeleteHandler) // delete file
+	s.mux.HandleFunc("DELETE /materials/{id}", s.handler.MaterialDeleteHandler)                    // delete material
+	s.mux.HandleFunc("GET /materials/{id}/edit", s.handler.MaterialEditHandler)                    // return form for editing material
+	s.mux.HandleFunc("GET /materials/new", s.handler.MaterialCreateHandler)                        // return form for creating new material
+
+	s.mux.HandleFunc("GET /products", s.handler.ProductListHandler)                              // return list of products
+	s.mux.HandleFunc("POST /products", s.handler.ProductNewHandler)                              // create new product, return new list of products
+	s.mux.HandleFunc("GET /products/{id}", s.handler.ProductViewHandler)                         // return product by id
+	s.mux.HandleFunc("POST /products/{id}", s.handler.ProductNewHandler)                         // update product, return updated product
+	s.mux.HandleFunc("GET /products/{id}/materials", s.handler.ProductMaterialListHandler)       // return list of materials that used in this product
+	s.mux.HandleFunc("GET /products/{id}/files", s.handler.ProductFilesListHandler)              // return list of pinned files
+	s.mux.HandleFunc("POST /products/{id}/files", s.handler.ProductFileCreateHandler)            // attach new file
+	s.mux.HandleFunc("DELETE /products/{id}/files/{fileID}", s.handler.ProductFileDeleteHandler) // delete file
+	s.mux.HandleFunc("DELETE /products/{id}", s.handler.ProductDeleteHandler)                    // delete material
+	s.mux.HandleFunc("GET /products/{id}/edit", s.handler.ProductEditHandler)                    // return form for editing product
+	s.mux.HandleFunc("GET /products/new", s.handler.ProductCreateHandler)                        // return form for creating new product
+
+	s.mux.HandleFunc("GET /files/preview/{id}", s.handler.FilePreview) // return preview form for file based on its type
+	s.mux.HandleFunc("GET /files/{id}", s.handler.FileDownload)        // download file
 }
 
 func (s *Server) stop(w http.ResponseWriter, r *http.Request) {
 	s.cancel()
-}
-
-func (s *Server) welcomePage(w http.ResponseWriter, r *http.Request) {
-	ctx, _ := context.WithTimeout(r.Context(), time.Second*10)
-	err := templates.Index(r.Context()).Render(ctx, w)
-	if err != nil {
-		slog.Error("can't render welcome page", "error", err)
-	}
 }
