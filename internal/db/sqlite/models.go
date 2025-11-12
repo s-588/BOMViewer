@@ -8,28 +8,49 @@ import (
 	"database/sql"
 )
 
+type File struct {
+	FileID int64
+	Name   string
+	Path   sql.NullString
+}
+
+type FilesMaterial struct {
+	MaterialID sql.NullInt64
+	FileID     sql.NullInt64
+}
+
+type FilesProduct struct {
+	ProductID sql.NullInt64
+	FileID    sql.NullInt64
+}
+
 type Material struct {
-	MaterialID  interface{}
-	Unit        string
+	MaterialID  int64
+	UnitID      int64
 	Description sql.NullString
 }
 
 type MaterialName struct {
-	NameID     interface{}
+	NameID     int64
 	MaterialID int64
 	Name       string
 	IsPrimary  bool
 }
 
 type Product struct {
-	ProductID   interface{}
+	ProductID   int64
 	Name        string
 	Description sql.NullString
-	Price       interface{}
 }
 
 type ProductMaterial struct {
-	ProductID  sql.NullInt64
-	MaterialID sql.NullInt64
-	Quantity   interface{}
+	ProductID    sql.NullInt64
+	MaterialID   sql.NullInt64
+	Quantity     interface{}
+	QuantityText sql.NullString
+}
+
+type UnitType struct {
+	UnitID int64
+	Unit   string
 }
