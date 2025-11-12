@@ -50,8 +50,8 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 	>
 		<!-- Primary Name -->
 		<div>
-			<label class="form-label">Основное название</label>
-			<p class="text-muted">Обычно это самое понятное название без сокращений.</p>
+			<label class="form-label fw-semibold fs-6">Основное название</label>
+<div class="form-text">Обычно это самое понятное название без сокращений.</div>
 			<input
 				name="primary_name"
 				value={ material.PrimaryName }
@@ -61,8 +61,8 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 		</div>
 		<!-- Other Names -->
 		<div>
-			<label class="form-label">Другие названия</label>
-			<p class="text-muted">Добавьте все известные названия, разделенные запятыми.</p>
+			<label class="form-label fw-semibold fs-6">Другие названия</label>
+			<p class="form-text">Добавьте все известные названия, разделенные запятыми.</p>
 			<div id="other-names">
 				for _, name := range material.Names {
 					if name != material.PrimaryName {
@@ -90,7 +90,7 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 		</div>
 		<!-- Description -->
 		<div>
-			<label class="form-label">Описание</label>
+			<label class="form-label fw-semibold fs-6">Описание</label>
 			<textarea
 				name="description"
 				class="form-control"
@@ -99,7 +99,7 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 		</div>
 		<!-- Unit Type -->
 		<div>
-			<label class="form-label">Единица измерения</label>
+			<label class="form-label fw-semibold fs-6">Единица измерения</label>
 			<select name="unit_id" class="form-select" required>
 				if action == "edit" {
 					<option value="">Выберите единицу...</option>
@@ -127,8 +127,8 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 		</div>
 <!-- Product association -->
         <div>
-            <label class="form-label">Продукты, использующие материал</label>
-            <p class="text-muted">Выберите продукты и укажите количество материала в каждом.</p>
+            <label class="form-label fw-semibold fs-6">Продукты, использующие материал</label>
+            <p class="form-text">Выберите продукты и укажите количество материала в каждом.</p>
             <table class="table table-sm align-middle">
                 <thead>
                     <tr>
@@ -147,7 +147,7 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
                             <td>{p.Name}</td>
                             <td>{p.Description}</td>
                             <td>
-                                <input type="number" step="1" name={fmt.Sprintf("quantity_%d", p.ID)} class="form-control form-control-sm"/>
+                                <input type="text" step="1" name={fmt.Sprintf("quantity_%d", p.ID)} class="form-control form-control-sm"/>
                             </td>
                         </tr>
                     }

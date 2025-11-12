@@ -164,7 +164,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<form class=\"bg-white p-3 rounded shadow-sm space-y-3\"><!-- Primary Name --><div><label class=\"form-label\">Основное название</label><p class=\"text-muted\">Обычно это самое понятное название без сокращений.</p><input name=\"primary_name\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<form class=\"bg-white p-3 rounded shadow-sm space-y-3\"><!-- Primary Name --><div><label class=\"form-label fw-semibold fs-6\">Основное название</label><div class=\"form-text\">Обычно это самое понятное название без сокращений.</div><input name=\"primary_name\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -177,7 +177,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"form-control\" required></div><!-- Other Names --><div><label class=\"form-label\">Другие названия</label><p class=\"text-muted\">Добавьте все известные названия, разделенные запятыми.</p><div id=\"other-names\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"form-control\" required></div><!-- Other Names --><div><label class=\"form-label fw-semibold fs-6\">Другие названия</label><p class=\"form-text\">Добавьте все известные названия, разделенные запятыми.</p><div id=\"other-names\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -202,7 +202,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<input name=\"other_names\" class=\"form-control mb-1\" placeholder=\"Добавить новое имя...\"></div><script>\r\n\t\t\tfunction addOtherNameField() {\r\n\t\t\t\tthis.insertAdjacentHTML('beforebegin', '<input name=\"other_names\" class=\"form-control mb-1\" placeholder=\"Добавить имя...\" />')\r\n\t\t\t}\r\n\t\t\t</script><button type=\"button\" class=\"btn btn-sm btn-outline-secondary mt-2\" onclick=\"addOtherNameField.call(this)\">Добавить поле</button></div><!-- Description --><div><label class=\"form-label\">Описание</label> <textarea name=\"description\" class=\"form-control\" rows=\"3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<input name=\"other_names\" class=\"form-control mb-1\" placeholder=\"Добавить новое имя...\"></div><script>\r\n\t\t\tfunction addOtherNameField() {\r\n\t\t\t\tthis.insertAdjacentHTML('beforebegin', '<input name=\"other_names\" class=\"form-control mb-1\" placeholder=\"Добавить имя...\" />')\r\n\t\t\t}\r\n\t\t\t</script><button type=\"button\" class=\"btn btn-sm btn-outline-secondary mt-2\" onclick=\"addOtherNameField.call(this)\">Добавить поле</button></div><!-- Description --><div><label class=\"form-label fw-semibold fs-6\">Описание</label> <textarea name=\"description\" class=\"form-control\" rows=\"3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -215,7 +215,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</textarea></div><!-- Unit Type --><div><label class=\"form-label\">Единица измерения</label> <select name=\"unit_id\" class=\"form-select\" required>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</textarea></div><!-- Unit Type --><div><label class=\"form-label fw-semibold fs-6\">Единица измерения</label> <select name=\"unit_id\" class=\"form-select\" required>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -304,7 +304,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 				}
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</select></div><!-- Product association --><div><label class=\"form-label\">Продукты, использующие материал</label><p class=\"text-muted\">Выберите продукты и укажите количество материала в каждом.</p><table class=\"table table-sm align-middle\"><thead><tr><th>Выбрать</th><th>Название</th><th>Описание</th><th>Количество</th><th>Текстовое количество</th></tr></thead> <tbody>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</select></div><!-- Product association --><div><label class=\"form-label fw-semibold fs-6\">Продукты, использующие материал</label><p class=\"form-text\">Выберите продукты и укажите количество материала в каждом.</p><table class=\"table table-sm align-middle\"><thead><tr><th>Выбрать</th><th>Название</th><th>Описание</th><th>Количество</th></tr></thead> <tbody>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -316,7 +316,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(p.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 146, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 145, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -329,7 +329,7 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 148, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 147, Col: 39}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -342,72 +342,59 @@ func MaterialForm(material models.Material, units []models.Unit, products []mode
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(p.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 149, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 148, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</td><td><input type=\"number\" step=\"1\" name=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</td><td><input type=\"text\" step=\"1\" name=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("quantity_%d", p.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 151, Col: 100}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 150, Col: 98}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" class=\"form-control form-control-sm\"></td><td><input type=\"text\" name=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" class=\"form-control form-control-sm\"></td></tr>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</tbody></table></div><!-- Submit --><div class=\"mt-3\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if action == "edit" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<button hx-post=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var21 string
-			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("quantity_text_%d", p.ID))
+			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/materials/%d/edit", material.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 154, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 161, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" class=\"form-control form-control-sm\"></td></tr>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</tbody></table></div><!-- Submit --><div class=\"mt-3\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if action == "edit" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<button hx-post=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var22 string
-			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/materials/%d/edit", material.ID))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/materials.templ`, Line: 165, Col: 80}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\" hx-target=\"#content\" type=\"submit\" class=\"btn btn-primary w-100\">Сохранить</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\" hx-target=\"#content\" type=\"submit\" class=\"btn btn-primary w-100\">Сохранить</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<button hx-post=\"/materials\" hx-target=\"#content\" type=\"submit\" class=\"btn btn-primary w-100\">Добавить</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<button hx-post=\"/materials\" hx-target=\"#content\" type=\"submit\" class=\"btn btn-primary w-100\">Добавить</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</div></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</div></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

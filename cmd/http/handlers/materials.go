@@ -46,6 +46,18 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 		templates.NotFoundError("единица измерения не существует").Render(r.Context(), w)
 	}
 	
+	material := models.Material{
+		Names:       names,
+		PrimaryName: primaryName,
+		Description: r.FormValue("description"),
+		Unit:        unit,
+	}
+	material, err = h.db.InsertMaterial(r.Context(), material)
+	if err != nil {
+		slog.Error("can't insert material", "error", err, "where", "MaterialNewHandler")
+		templates.InternalError("внутренняя ошибка").Render(r.Context(), w)
+	}
+
 	productsIds := r.Form["product_ids"]
 	for _, id := range productsIds{
 		productID, err := strconv.ParseInt(id, 10, 64)
@@ -54,21 +66,15 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 			templates.InternalError("ошибка обработки идентификатора продукта: " + err.Error()).Render(r.Context(), w)
 			return
 		}
-		quantity = r.FormValue(fmt.Sprintf("quantity_%d", productID))
-		h.db.AddProductMaterial(r.Context(), productID, )
+		quantity := r.FormValue(fmt.Sprintf("quantity_%d", productID))
+		err = h.db.AddProductMaterial(r.Context(), productID, material.ID, quantity)
+		if err != nil{
+			slog.Error("can't add product to material", "error", err, "where", "MaterialNewHandler")
+			templates.InternalError("внутренняя ошибка").Render(r.Context(), w)
+			return
+		}
 	}
 
-	material := models.Material{
-		Names:       names,
-		PrimaryName: primaryName,
-		Description: r.FormValue("description"),
-		Unit:        unit,
-	}
-	_, err = h.db.InsertMaterial(r.Context(), material)
-	if err != nil {
-		slog.Error("can't insert material", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("внутренняя ошибка").Render(r.Context(), w)
-	}
 	http.Redirect(w, r, "/materials", http.StatusSeeOther)
 }
 
