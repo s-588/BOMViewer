@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/s-588/BOMViewer/cmd/http/handlers"
@@ -21,19 +22,22 @@ func NewServer(cancel context.CancelFunc, port string, repo *db.Repository) *Ser
 		cancel:  cancel,
 		handler: handlers.NewHandler(repo),
 		Port:    port,
+		mux: http.NewServeMux(),
 	}
 }
 
 func (s *Server) Start() error {
 	s.setupPaths()
+	slog.Info("starting listening on port", "port", s.Port)
 	return http.ListenAndServe(s.Port, s.mux)
 }
 
 func (s *Server) setupPaths() {
-	s.mux.HandleFunc("POST /exit", s.stop)
+	slog.Info("setting up server endpoints")
 
+	s.mux.HandleFunc("/", s.handler.RootPage)
 	s.mux.Handle("/static/", http.FileServer(http.Dir("web/")))
-	s.mux.HandleFunc("GET /", s.handler.RootPage)
+	s.mux.HandleFunc("/exit", s.stop)
 
 	s.mux.HandleFunc("GET /materials", s.handler.MaterialListHandler)                              // return list of materials
 	s.mux.HandleFunc("POST /materials", s.handler.MaterialNewHandler)                              // create new material, return new list of materials
