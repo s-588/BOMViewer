@@ -1,9 +1,12 @@
 //go:generate templ generate
 package templates
 
-import "context"
+import (
+	"context"
+	"github.com/s-588/BOMViewer/internal/models"
+)
 
-templ Index(ctx context.Context) {
+templ Index(ctx context.Context, materials []models.Material, products []models.Product) {
 	<html lang="ru">
 		<head>
 			<meta charset="UTF-8"/>
@@ -15,8 +18,8 @@ templ Index(ctx context.Context) {
 		</head>
 		<body class="bg-light">
 				@header()
-				<div class="container mb-5">
-					@Body(ctx)
+				<div class="container mb-5" id="content">
+					@MaterialList(materials)
 		</div>
 				<div id="modal-container"></div>
 

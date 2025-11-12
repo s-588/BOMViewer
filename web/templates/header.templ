@@ -5,8 +5,16 @@ templ header() {
 			<div class="container-fluid">
 				<a class="navbar-brand" href="/">BOM Manager</a>
 				<div>
-					<a href="/materials" class="btn btn-outline-light btn-sm">Materials</a>
-					<a href="/products" class="btn btn-outline-light btn-sm ms-2">Products</a>
+					<a 
+					hx-get="/materials?tab=materials"
+					hx-target="#content"
+					hx-push-url="/materials"
+					class="btn btn-outline-light btn-sm">Материалы</a>
+					<a 
+					hx-get="/products?tab=products"
+					hx-target="#content"
+					hx-push-url="/products"
+					class="btn btn-outline-light btn-sm ms-2">Продукты</a>
 				</div>
 			</div>
 		</nav>

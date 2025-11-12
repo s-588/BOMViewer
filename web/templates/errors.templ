@@ -1,0 +1,11 @@
+package templates
+
+import "fmt"
+
+templ NotFoundError(err string){
+    <h1>{ fmt.Sprintf("404 - Не найдено: %s", err) }</h1>
+}
+
+templ InternalError(err string){
+    <h1>{ fmt.Sprintf("500 - Внутренняя ошибка: %s", err) }</h1>
+}
