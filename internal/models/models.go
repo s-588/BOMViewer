@@ -1,15 +1,32 @@
 package models
 
-type Material struct{
-	ID int
-	Names []string
-	Unit string
+type Material struct {
+	ID          int64
+	Names       []string
+	PrimaryName string
+	Unit        Unit
 	Description string
+	Quantity    string
+	Products    []Product
 }
 
-type Product struct{
-	ID int
+type Unit struct {
+	ID   int64
 	Name string
+}
+
+type Product struct {
+	ID          int64
+	Name        string
 	Description string
-	Materials []int // ID's of materials
+// How many of material used in this product. 
+// This field used only in MaterialView situation where list of products use same material.
+	Quantity    string
+	Materials   []Material
+}
+
+type File struct {
+	ID   int64
+	Name string
+	Path string
 }
