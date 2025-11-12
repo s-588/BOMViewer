@@ -2,13 +2,12 @@ package templates
 
 import (
 	"fmt"
-	"yourapp/internal/models"
-	. "github.com/a-h/templ"
+	"github.com/s-588/BOMViewer/internal/models"
 )
 
-templ MaterialView(material models.Material, products []models.Product) {
+templ MaterialView(material models.Material, files []models.File) {
 	<div class="container my-4">
-		<h2 class="mb-3">{ material.Name }</h2>
+		<h2 class="mb-3">{ material.PrimaryName }</h2>
 
 		<!-- Description -->
 		<div class="mb-4">
@@ -20,12 +19,12 @@ templ MaterialView(material models.Material, products []models.Product) {
 		<div class="mb-4">
 			<h5>Закреплённые файлы</h5>
 			<div class="row">
-				for _, file := range material.Files {
+				for _, file := range files {
 					<div class="col-md-3 mb-3">
 						<div class="card shadow-sm">
-							<img src={ fmt.Sprintf("/files/preview/%s", file.ID) } class="card-img-top" alt={ file.Name }/>
+							<img src={ fmt.Sprintf("/files/preview/%d", file.ID) } class="card-img-top" alt={ file.Name }/>
 							<div class="card-body p-2 text-center">
-								<a href={ fmt.Sprintf("/files/download/%s", file.ID) } class="btn btn-sm btn-outline-primary w-100">
+								<a href={ fmt.Sprintf("/files/download/%d", file.ID) } class="btn btn-sm btn-outline-primary w-100">
 									Скачать
 								</a>
 							</div>
@@ -41,18 +40,17 @@ templ MaterialView(material models.Material, products []models.Product) {
 				<h5>Другие названия</h5>
 				<ul class="list-group">
 					for _, name := range material.Names {
-						if name != material.Name {
+						if name != material.PrimaryName {
 							<li class="list-group-item">{ name }</li>
 						}
 					}
 				</ul>
 			</div>
 		}
-
 		<!-- Products Using This Material -->
 		<div class="mb-4">
 			<h5>Используется в продуктах</h5>
-			if len(products) == 0 {
+			if len(material.Products) == 0 {
 				<p class="text-muted">Нет связанных продуктов</p>
 			} else {
 				<table class="table table-striped align-middle">
@@ -64,14 +62,14 @@ templ MaterialView(material models.Material, products []models.Product) {
 						</tr>
 					</thead>
 					<tbody>
-						for _, p := range products {
+						for _, p := range material.Products {
 							<tr>
 								<td>{ p.Name }</td>
-								<td>{ p.MaterialCounts[material.ID] }</td>
+								<td>{ fmt.Sprintf("%s %s",p.Quantity,material.Unit.Name) }</td>
 								<td>
 									<button
 										class="btn btn-sm btn-outline-secondary"
-										hx-get={ fmt.Sprintf("/product/%s", p.ID) }
+										hx-get={ fmt.Sprintf("/products/%d", p.ID) }
 										hx-target="#content"
 										hx-push-url="true"
 									>
@@ -88,7 +86,7 @@ templ MaterialView(material models.Material, products []models.Product) {
 }
 
 
-templ ProductView(product models.Product, materials []models.Material) {
+templ ProductView(product models.Product, files []models.File) {
 	<div class="container my-4">
 		<h2 class="mb-3">{ product.Name }</h2>
 
@@ -102,12 +100,12 @@ templ ProductView(product models.Product, materials []models.Material) {
 		<div class="mb-4">
 			<h5>Закреплённые файлы</h5>
 			<div class="row">
-				for _, file := range product.Files {
+				for _, file := range files {
 					<div class="col-md-3 mb-3">
 						<div class="card shadow-sm">
-							<img src={ fmt.Sprintf("/files/preview/%s", file.ID) } class="card-img-top" alt={ file.Name }/>
+							<img src={ fmt.Sprintf("/files/preview/%d", file.ID) } class="card-img-top" alt={ file.Name }/>
 							<div class="card-body p-2 text-center">
-								<a href={ fmt.Sprintf("/files/download/%s", file.ID) } class="btn btn-sm btn-outline-primary w-100">
+								<a href={ fmt.Sprintf("/files/download/%d", file.ID) } class="btn btn-sm btn-outline-primary w-100">
 									Скачать
 								</a>
 							</div>
@@ -120,7 +118,7 @@ templ ProductView(product models.Product, materials []models.Material) {
 		<!-- Materials List -->
 		<div>
 			<h5>Материалы</h5>
-			if len(materials) == 0 {
+			if len(product.Materials) == 0 {
 				<p class="text-muted">Нет материалов</p>
 			} else {
 				<table class="table table-striped align-middle">
@@ -132,14 +130,14 @@ templ ProductView(product models.Product, materials []models.Material) {
 						</tr>
 					</thead>
 					<tbody>
-						for _, m := range materials {
+						for _, m := range product.Materials {
 							<tr>
-								<td>{ m.Name }</td>
-								<td>{ product.MaterialCounts[m.ID] }</td>
+								<td>{ m.PrimaryName }</td>
+								<td>{ fmt.Sprintf("%s %s",m.Quantity,m.Unit.Name) }</td>
 								<td>
 									<button
 										class="btn btn-sm btn-outline-secondary"
-										hx-get={ fmt.Sprintf("/material/%s", m.ID) }
+										hx-get={ fmt.Sprintf("/materials/%d", m.ID) }
 										hx-target="#content"
 										hx-push-url="true"
 									>
