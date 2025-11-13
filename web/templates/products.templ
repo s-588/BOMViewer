@@ -30,16 +30,91 @@ templ ProductList(products []models.Product) {
 	</table>
 }
 
-templ ProductForm(product models.Product, action string) {
-	<form hx-post={ action } hx-target="#content" class="bg-white p-3 rounded shadow-sm">
+templ ProductForm(product models.Product, materials []models.Material, action string) {
+	<form
+		hx-post={ action }
+		hx-target="#content"
+		class="bg-white p-3 rounded shadow-sm space-y-3"
+	>
+		<!-- Product name -->
 		<div class="mb-3">
-			<label class="form-label">Название</label>
-			<input name="name" value={ product.Name } class="form-control"/>
+			<h6 class="fw-semibold mb-1">Название продукта</h6>
+			<div class="form-text">Введите уникальное и понятное название изделия.</div>
+			<input name="name" value={ product.Name } class="form-control" required/>
 		</div>
+		<!-- Description -->
 		<div class="mb-3">
-			<label class="form-label">Описание</label>
-			<textarea name="description" class="form-control">{ product.Description }</textarea>
+			<h6 class="fw-semibold mb-1">Описание</h6>
+			<div class="form-text">Кратко опишите назначение или характеристики изделия.</div>
+			<textarea name="description" class="form-control" rows="3">{ product.Description }</textarea>
 		</div>
-		<button type="submit" class="btn btn-primary">Сохранить</button>
+		<!-- Materials association -->
+		<div class="mb-3">
+			<h6 class="fw-semibold mb-1">Материалы</h6>
+			<div class="form-text">
+				Отметьте материалы, используемые в этом продукте, и укажите количество.
+			</div>
+			<table class="table table-sm align-middle mt-2">
+				<thead>
+					<tr>
+						<th>Выбрать</th>
+						<th>Название</th>
+						<th>Описание</th>
+						<th>Количество</th>
+						<th>Ед.</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, m := range materials {
+						<tr>
+							<td>
+								if product.Materials != nil {
+									for _, pm := range product.Materials {
+										if pm.ID == m.ID {
+											<input
+												type="checkbox"
+												name="material_ids"
+												value={ m.ID }
+												checked
+											/>
+										} 									}
+								}else {
+											<input
+												type="checkbox"
+												name="material_ids"
+												value={ m.ID }
+											/>
+										}
+
+							</td>
+							<td>{ m.PrimaryName }</td>
+							<td class="text-muted small">{ m.Description }</td>
+							<td>
+								<input
+									type="text"
+									name={ fmt.Sprintf("quantity_%d", m.ID) }
+									value={ func() string {
+											for _, pm := range product.Materials {
+												if pm.ID == m.ID {
+													return pm.Quantity
+												}
+											}
+											return ""
+										}() }
+									class="form-control form-control-sm"
+								/>
+							</td>
+							<td>{ m.Unit.Name }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+		<!-- Submit -->
+		<div class="mt-3">
+			<button type="submit" class="btn btn-primary w-100">
+				Сохранить
+			</button>
+		</div>
 	</form>
 }
