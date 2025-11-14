@@ -1,3 +1,5 @@
+-- THIS FILE ONLY FOR SQLC
+
 CREATE TABLE materials (
   material_id INTEGER PRIMARY KEY AUTOINCREMENT,
   unit_id INT NOT NULL REFERENCES unit_types (unit_id) ON DELETE SET NULL,
@@ -52,4 +54,12 @@ CREATE TABLE files_products (
   product_id INTEGER REFERENCES products (product_id) ON DELETE CASCADE,
   file_id INTEGER REFERENCES files (file_id) ON DELETE CASCADE,
   PRIMARY KEY (product_id, file_id)
+);
+
+-- Optimized virtual table for text search
+CREATE VIRTUAL TABLE fts_all USING fts5(
+    type UNINDEXED,
+    ref_id UNINDEXED,
+    text,
+    tokenize = 'unicode61'
 );

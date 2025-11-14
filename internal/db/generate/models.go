@@ -24,6 +24,12 @@ type FilesProduct struct {
 	FileID    sql.NullInt64
 }
 
+type FtsAll struct {
+	Type  string
+	RefID string
+	Text  string
+}
+
 type Material struct {
 	MaterialID  int64
 	UnitID      int64
