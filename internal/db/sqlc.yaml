@@ -1,8 +1,8 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "queries/*.sql"
-    schema: "schema/schema.sql"
+    queries: "sqlc/queries/*.sql"
+    schema: "sqlc/schema.sql"
     gen:
       go:
         package: "sqlite"
