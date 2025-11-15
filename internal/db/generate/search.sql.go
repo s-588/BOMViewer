@@ -9,34 +9,58 @@ import (
 	"context"
 )
 
-const search = `-- name: Search :many
+const searchAll = `-- name: SearchAll :many
 SELECT
-    type, ref_id, text
+    fa.type,
+    fa.ref_id,
+    fa.text,
+    COALESCE(
+        case
+            when fa.type = 'product' then p.name
+            ELSE mn.name
+        end,
+        ''
+    ) AS name
 FROM
-    fts_all
+    fts_all fa
+    left join products p on fa.ref_id = p.id
+    and fa.type = 'product'
+    left join material_names mn on fa.ref_id = mn.id
+    and fa.type = 'material'
+    and mn.is_primary = true
 WHERE
     text MATCH ?
-ORDER BY
-    score
 LIMIT
     ?
 `
 
-type SearchParams struct {
+type SearchAllParams struct {
 	Text  string
 	Limit int64
 }
 
-func (q *Queries) Search(ctx context.Context, arg SearchParams) ([]FtsAll, error) {
-	rows, err := q.db.QueryContext(ctx, search, arg.Text, arg.Limit)
+type SearchAllRow struct {
+	Type  string
+	RefID string
+	Text  string
+	Name  interface{}
+}
+
+func (q *Queries) SearchAll(ctx context.Context, arg SearchAllParams) ([]SearchAllRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchAll, arg.Text, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FtsAll
+	var items []SearchAllRow
 	for rows.Next() {
-		var i FtsAll
-		if err := rows.Scan(&i.Type, &i.RefID, &i.Text); err != nil {
+		var i SearchAllRow
+		if err := rows.Scan(
+			&i.Type,
+			&i.RefID,
+			&i.Text,
+			&i.Name,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
