@@ -1,8 +1,10 @@
--- 0003_fts.sql
-
-CREATE VIRTUAL TABLE fts_all USING fts5(
+-- +goose Up
+CREATE VIRTUAL TABLE fts_table USING fts5(
     type UNINDEXED,
     ref_id UNINDEXED,
     text,
     tokenize='unicode61'
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS fts_table;

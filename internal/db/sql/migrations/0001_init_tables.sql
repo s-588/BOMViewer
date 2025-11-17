@@ -1,5 +1,4 @@
--- 0001_init_tables.sql
-
+-- +goose Up
 CREATE TABLE unit_types (
     unit_id INTEGER PRIMARY KEY AUTOINCREMENT,
     unit VARCHAR(50) NOT NULL
@@ -57,3 +56,13 @@ CREATE TABLE files_products (
     FOREIGN KEY (product_id) REFERENCES products (product_id) ON DELETE CASCADE,
     FOREIGN KEY (file_id) REFERENCES files (file_id) ON DELETE CASCADE
 );
+
+-- +goose Down
+DROP TABLE files_products;
+DROP TABLE files_materials;
+DROP TABLE files;
+DROP TABLE product_materials;
+DROP TABLE products;
+DROP TABLE material_names;
+DROP TABLE materials;
+DROP TABLE unit_types;

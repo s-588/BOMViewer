@@ -1,5 +1,4 @@
--- 0005_seed_data.sql
-
+-- +goose Up
 INSERT INTO unit_types(unit) VALUES
     ('кг'),
     ('мм/кг'),
@@ -33,8 +32,7 @@ INSERT INTO products (name) VALUES
     ('Устройство остановки колесного транспорта'),
     ('Евроконтейнер ЕКМ');
 
-INSERT INTO product_materials
-(product_id, material_id, quantity, quantity_text) VALUES
+INSERT INTO product_materials (product_id, material_id, quantity, quantity_text) VALUES
     (1, 1, '61.75', null),
     (1, 2, '10.0', null),
     (1, 3, '2.0',  null),
@@ -44,3 +42,14 @@ INSERT INTO product_materials
     (1, 7, null,  '38,1/51,06'),
     (1, 8, '3.55', null),
     (1, 9, '11.55', null);
+
+-- +goose Down
+DELETE FROM product_materials WHERE product_id IN (1,2);
+DELETE FROM products WHERE name IN (
+    'Устройство остановки колесного транспорта',
+    'Евроконтейнер ЕКМ'
+);
+DELETE FROM material_names WHERE material_id BETWEEN 1 AND 9;
+DELETE FROM materials WHERE material_id BETWEEN 1 AND 9;
+DELETE FROM unit_types WHERE unit IN
+    ('кг','мм/кг','м. пог.(кг.)','мл','л','шт','шт. (м)','банка','баллон','см','м','м²','м³');

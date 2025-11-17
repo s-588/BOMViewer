@@ -1,16 +1,15 @@
--- 0002_indexes.sql
-
--- Only one primary name per material
+-- +goose Up
 CREATE UNIQUE INDEX idx_material_primary_name
-ON material_names (material_id)
-WHERE is_primary = 1;
+    ON material_names (material_id)
+    WHERE is_primary = 1;
 
--- Next indexes need for FTS5 optimization
-
--- Unique name per material
 CREATE UNIQUE INDEX idx_material_names_unique
-ON material_names (material_id, name);
+    ON material_names (material_id, name);
 
--- Unique product name
 CREATE UNIQUE INDEX idx_products_unique_name
-ON products (name);
+    ON products (name);
+
+-- +goose Down
+DROP INDEX IF EXISTS idx_material_primary_name;
+DROP INDEX IF EXISTS idx_material_names_unique;
+DROP INDEX IF EXISTS idx_products_unique_name;
