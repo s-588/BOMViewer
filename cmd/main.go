@@ -17,7 +17,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dbctx, _ := context.WithTimeout(ctx, time.Second*10)
-	repo, err := db.NewRepository(dbctx, "bom.db")
+	repo, err := db.NewRepository(dbctx, "santex.db")
 	if err != nil {
 		slog.Info("error creating repository:", "error", err)
 		return
