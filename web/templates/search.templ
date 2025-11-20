@@ -1,0 +1,86 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/s-588/BOMViewer/internal/models"
+)
+
+templ SearchBar(itemType, view string) {
+	<div class="position-relative" style="max-width: 400px;">
+<input
+    id="search-input"
+    type="text"
+    name="q"
+    placeholder="Поиск..."
+    class="form-control"
+    hx-get={ fmt.Sprintf("/search?type=%s&view=%s", itemType, view) }
+    hx-trigger="keyup changed delay:150ms"
+    hx-target="#suggestions"
+    autocomplete="off"
+
+    hx-on:input="if (this.value.trim() === '') document.querySelector('#suggestions').innerHTML='';"
+    hx-on:blur="setTimeout(() => document.querySelector('#suggestions').innerHTML = '', 150)"
+/>
+		<div
+			id="suggestions"
+			class="position-absolute bg-white w-100 border rounded shadow-sm"
+			style="z-index: 1000; max-height: 350px; overflow-y: auto;"
+		></div>
+	</div>
+}
+
+templ SearchResults(itemType, view string, materials []models.Material, products []models.Product) {
+	if view == "picker" {
+		if itemType == "material" {
+			if len(materials) == 0 {
+				@noResults()
+			}
+		} else {
+			if len(products) == 0 {
+				@noResults()
+			}
+			// TODO: 
+		}
+	} else {
+		if len(materials) == 0 && len(products) == 0 {
+			@noResults()
+		} else {
+			<div class="list-group list-group-flush">
+				if len(materials) != 0 {
+					for _, material := range materials {
+						<a
+							hx-get={ fmt.Sprintf("/materials/%d", material.ID) }
+							hx-push-url={ fmt.Sprintf("/materials/%d", material.ID) }
+							class="list-group-item list-group-item-action d-flex align-items-center"
+                            hx-target="#content"
+						>
+							<div class="flex-grow-1">
+								<div class="fw-semibold">{ material.PrimaryName }</div>
+							</div>
+						</a>
+					}
+				}
+				if len(products) != 0 {
+					for _, product := range products {
+						<a
+							hx-get={ fmt.Sprintf("/products/%d", product.ID) }
+							hx-push-url={ fmt.Sprintf("/products/%d", product.ID) }
+                            hx-target="#content"
+							class="list-group-item list-group-item-action d-flex align-items-center"
+						>
+							<div class="flex-grow-1">
+								<div class="fw-semibold">{ product.Name }</div>
+							</div>
+						</a>
+					}
+				}
+			</div>
+		}
+	}
+}
+
+templ noResults() {
+	<div class="p-3 text-muted text-center small">
+		Нет результатов
+	</div>
+}
