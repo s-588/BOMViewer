@@ -1,23 +1,72 @@
 -- name: SearchAll :many
 SELECT
-    fa.type,
-    fa.ref_id,
-    fa.text,
+    f.type,
+    f.ref_id,
     COALESCE(
-        case
-            when fa.type = 'product' then p.name
-            ELSE mn.name
-        end,
+        CASE
+            WHEN f.type = 'product' THEN p.name
+            WHEN f.type = 'material' THEN mn.name
+        END,
         ''
-    ) AS name
+    ) AS display_name,
+    f.text,
+    f.score
 FROM
-    fts_all fa
-    left join products p on fa.ref_id = p.id
-    and fa.type = 'product'
-    left join material_names mn on fa.ref_id = mn.id
-    and fa.type = 'material'
-    and mn.is_primary = true
+    fts f
+    LEFT JOIN products p ON f.type = 'product'
+    AND f.ref_id = p.product_id
+    LEFT JOIN material_names mn ON f.type = 'material'
+    AND f.ref_id = mn.material_id
+    AND mn.is_primary = 1
 WHERE
-    text MATCH ?
+    f.text MATCH ?
+ORDER BY
+    f.score ASC
+LIMIT
+    ?;
+
+-- name: SearchMaterials :many
+SELECT
+    f.ref_id,
+    mn.name AS display_name,
+    f.text,
+    u.unit,
+    COALESCE(pm.quantity, pm.quantity_text) AS quantity,
+    score
+FROM fts f
+LEFT JOIN materials m
+    ON f.ref_id = m.material_id
+LEFT JOIN material_names mn
+    ON f.ref_id = mn.material_id AND mn.is_primary = 1
+LEFT JOIN product_materials pm
+    ON m.material_id = pm.material_id
+INNER JOIN unit_types u
+    ON m.unit_id = u.unit_id
+LEFT JOIN json_each(json(sqlc.arg(units))) je
+    ON m.unit_id = je.value
+WHERE
+    f.text MATCH sqlc.arg(query)
+    AND (
+        json_array_length(json(sqlc.arg(units))) = 0
+        OR je.value IS NOT NULL
+    )
+ORDER BY score ASC
+LIMIT sqlc.arg(limit);
+
+
+-- name: SearchProducts :many
+SELECT
+    f.ref_id,
+    p.name AS display_name,
+    f.text,
+    f.score
+FROM
+    fts f
+    LEFT JOIN products p ON f.ref_id = p.product_id
+WHERE
+    f.text MATCH ?
+    AND f.type = 'product'
+ORDER BY
+    f.score ASC
 LIMIT
     ?;

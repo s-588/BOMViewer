@@ -29,7 +29,15 @@ func header() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"navbar navbar-expand-lg navbar-dark bg-dark mb-3\"><div class=\"container-fluid\"><a class=\"navbar-brand\" href=\"/\">BOM Manager</a><div><a hx-get=\"/materials?tab=materials\" hx-target=\"#content\" hx-push-url=\"/materials\" class=\"btn btn-outline-light btn-sm\">Материалы</a> <a hx-get=\"/products?tab=products\" hx-target=\"#content\" hx-push-url=\"/products\" class=\"btn btn-outline-light btn-sm ms-2\">Продукты</a></div></div></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"navbar navbar-expand-lg navbar-dark bg-dark mb-3\"><div class=\"container-fluid\"><a class=\"navbar-brand\" href=\"/\">BOM Manager</a>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = SearchBar("all", "main").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><a hx-get=\"/materials?tab=materials\" hx-target=\"#content\" hx-push-url=\"/materials\" class=\"btn btn-outline-light btn-sm\">Материалы</a> <a hx-get=\"/products?tab=products\" hx-target=\"#content\" hx-push-url=\"/products\" class=\"btn btn-outline-light btn-sm ms-2\">Продукты</a></div></div></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
