@@ -8,17 +8,103 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/s-588/BOMViewer/internal/db"
+	"github.com/s-588/BOMViewer/internal/helpers"
 	"github.com/s-588/BOMViewer/internal/models"
 	"github.com/s-588/BOMViewer/web/templates"
 )
 
 func (h *Handler) MaterialListHandler(w http.ResponseWriter, r *http.Request) {
-	materials, err := h.db.GetAllMaterial(r.Context())
+	// This handler returns the full page with controls and initial table
+	units, err := h.db.GetAllUnits(r.Context())
+	if err != nil {
+		slog.Error("can't get units", "error", err, "where", "MaterialListHandler")
+		templates.InternalError("ошибка получения списка единиц измерения для фильтров").Render(r.Context(), w)
+		return
+	}
+
+	products, err := h.db.GetAllProducts(r.Context())
+	if err != nil {
+		slog.Error("can't get products", "error", err, "where", "MaterialListHandler")
+		templates.InternalError("ошибка получения списка продуктов для фильтров").Render(r.Context(), w)
+		return
+	}
+
+	// Get initial materials (unfiltered)
+	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
 		slog.Error("can't get materials", "error", err, "where", "MaterialListHandler")
 		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+		return
 	}
-	templates.MaterialList(materials).Render(r.Context(), w)
+
+	args := templates.TableControlsArgs{
+		Action:          "/materials/table", // Point to the table endpoint
+		Sort:            "",
+		FiltersUnits:    []int64{},
+		FiltersProducts: []int64{},
+		PrimaryOnly:     false,
+		AllUnits:        units,
+		AllProducts:     products,
+	}
+	templates.MaterialList(materials, args).Render(r.Context(), w)
+}
+
+func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
+	// This handler returns only the table with applied filters and sorting
+	filters := db.MaterialFilterArgs{}
+	var sort string
+
+	// Parse query parameters
+	if r.URL.Query().Has("sort") {
+		sort = r.URL.Query().Get("sort")
+	}
+
+	if r.URL.Query().Has("units") {
+		unitsFilter, err := helpers.StringToInt64Slice(r.URL.Query()["units"])
+		if err != nil {
+			slog.Error("unit filter, can't convert", "error", err, "where", "MaterialTableHandler")
+			templates.InternalError("внутреняя ошибка").Render(r.Context(), w)
+			return
+		}
+		filters.Units = unitsFilter
+	}
+
+	if r.URL.Query().Has("products") {
+		productsFilter, err := helpers.StringToInt64Slice(r.URL.Query()["products"])
+		if err != nil {
+			slog.Error("product filter, can't convert", "error", err, "where", "MaterialTableHandler")
+			templates.InternalError("внутреняя ошибка").Render(r.Context(), w)
+			return
+		}
+		filters.Products = productsFilter
+	}
+
+	if r.URL.Query().Has("primary_only") {
+		filters.PrimaryOnly = r.URL.Query().Get("primary_only") == "1"
+	}
+
+	// Get all materials and apply filters
+	allMaterials, err := h.db.GetAllMaterials(r.Context())
+	if err != nil {
+		slog.Error("can't get materials", "error", err, "where", "MaterialTableHandler")
+		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+		return
+	}
+
+	// Apply filtering and sorting using your helper functions
+	filteredMaterials := helpers.FilterMaterials(allMaterials, helpers.MaterialFilterArgs{
+		PrimaryOnly: filters.PrimaryOnly,
+		ProductIDs:  filters.Products,
+		UnitIDs:     filters.Units,
+	})
+
+	// Apply sorting
+	sortConfig := helpers.ParseSortString(sort)
+	helpers.SortMaterials(filteredMaterials, sortConfig)
+
+	// Return only the table, not the full page
+	templates.MaterialTable(filteredMaterials, false, false).Render(r.Context(), w)
 }
 
 func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +131,7 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("unit error", "error", err, "where", "MaterialNewHandler")
 		templates.NotFoundError("единица измерения не существует").Render(r.Context(), w)
 	}
-	
+
 	material := models.Material{
 		Names:       names,
 		PrimaryName: primaryName,
@@ -59,16 +145,16 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	productsIds := r.Form["product_ids"]
-	for _, id := range productsIds{
+	for _, id := range productsIds {
 		productID, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
 			slog.Error("parse product id", "error", err, "where", "MaterialNewHandler")
-			templates.InternalError("ошибка обработки идентификатора продукта: " + err.Error()).Render(r.Context(), w)
+			templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
 			return
 		}
 		quantity := r.FormValue(fmt.Sprintf("quantity_%d", productID))
 		err = h.db.AddProductMaterial(r.Context(), productID, material.ID, quantity)
-		if err != nil{
+		if err != nil {
 			slog.Error("can't add product to material", "error", err, "where", "MaterialNewHandler")
 			templates.InternalError("внутренняя ошибка").Render(r.Context(), w)
 			return
@@ -278,4 +364,21 @@ func (h *Handler) MaterialProductListHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	templates.ProductList(products).Render(r.Context(), w)
+}
+
+func (h *Handler) MaterialsPicker(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	sort := r.URL.Query().Get("sort")
+
+	materials, _, err := h.db.SearchAll(r.Context(), db.SearchParams{
+		Query: q,
+		Sort:  sort,
+		Limit: 10,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	templates.MaterialPicker(materials, templates.TableControlsArgs{}).Render(r.Context(), w)
 }

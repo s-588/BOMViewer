@@ -6,25 +6,25 @@ import (
 	"github.com/s-588/BOMViewer/internal/models"
 )
 
-templ Index(ctx context.Context, materials []models.Material, products []models.Product) {
-	<html lang="ru">
-		<head>
-			<meta charset="UTF-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>App title</title>
-			<link rel="stylesheet" href="/static/css/style.css"/>
-			<link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
-			<script src="/static/js/exit.js"></script>
-		</head>
-		<body class="bg-light">
-				@header()
-				<div class="container mb-5" id="content">
-					@MaterialList(materials)
-		</div>
-				<div id="modal-container"></div>
-
-		</body>
-		<script src="/static/js/bootstrap.bundle.min.js"></script>
-		<script src="/static/js/htmx.min.js"></script>
-	</html>
+// Update the function signature to accept TableControlsArgs
+templ Index(ctx context.Context, materials []models.Material, products []models.Product, tableArgs TableControlsArgs) {
+    <html lang="ru">
+        <head>
+            <meta charset="UTF-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <title>App title</title>
+            <link rel="stylesheet" href="/static/css/style.css"/>
+            <link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
+            <script src="/static/js/exit.js"></script>
+        </head>
+        <body class="bg-light">
+            @header()
+            <div class="container mb-5" id="content">
+                @MaterialList(materials, tableArgs)  <!-- Pass the actual tableArgs -->
+            </div>
+            <div id="modal-container"></div>
+        </body>
+        <script src="/static/js/bootstrap.bundle.min.js"></script>
+        <script src="/static/js/htmx.min.js"></script>
+    </html>
 }

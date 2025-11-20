@@ -3,12 +3,15 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
+	"strings"
 
-	"github.com/s-588/BOMViewer/internal/db/sqlite"
+	sqlite "github.com/s-588/BOMViewer/internal/db/generate"
 	"github.com/s-588/BOMViewer/internal/models"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -44,33 +47,45 @@ func (r *Repository) Close() error {
 	return r.db.Close()
 }
 
-func (r *Repository) GetAllMaterial(ctx context.Context) ([]models.Material, error) {
+type MaterialFilterArgs struct {
+	PrimaryOnly bool
+	Units       []int64
+	Products    []int64
+}
+
+func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, error) {
+	// Fetch all base materials without filters (simple static query).
 	rows, err := r.queries.GetAllMaterials(ctx)
 	if err != nil {
 		return nil, parseError(err)
 	}
-
 	materials := make([]models.Material, 0, len(rows))
 	for _, row := range rows {
 		material := models.Material{
 			ID: row.MaterialID,
 			Unit: models.Unit{
 				ID:   row.UnitID,
-				Name: row.Unit,
+				Name: row.Name,
 			},
 			Description: row.Description.String,
 		}
 
-		nameRows, err := r.queries.GetMaterialNames(ctx, row.MaterialID)
+		if q, ok := row.Quantity.(string); ok {
+			material.Quantity = q
+		} else {
+			material.Quantity = row.QuantityText.String
+		}
+
+		nameRows, err := r.queries.GetMaterialNames(ctx, material.ID)
 		if err != nil {
 			return nil, parseError(err)
 		}
 		names := make([]string, 0, len(nameRows))
-		for _, row := range nameRows {
-			if row.IsPrimary {
-				material.PrimaryName = row.Name
+		for _, name := range nameRows {
+			names = append(names, name.Name)
+			if name.IsPrimary {
+				material.PrimaryName = name.Name
 			}
-			names = append(names, row.Name)
 		}
 		material.Names = names
 
@@ -94,16 +109,15 @@ func (r *Repository) InsertMaterial(ctx context.Context, material models.Materia
 	material.ID = materialRow.MaterialID
 
 	for _, name := range material.Names {
-	_, err = r.queries.InsertMaterialName(ctx, sqlite.InsertMaterialNameParams{
-		MaterialID: materialRow.MaterialID,
-		Name: name,
-		IsPrimary: name == material.PrimaryName,
-	})
-	if err != nil{
-		return models.Material{}, parseError(err)
+		_, err = r.queries.InsertMaterialName(ctx, sqlite.InsertMaterialNameParams{
+			MaterialID: materialRow.MaterialID,
+			Name:       name,
+			IsPrimary:  name == material.PrimaryName,
+		})
+		if err != nil {
+			return models.Material{}, parseError(err)
+		}
 	}
-}
-
 
 	return material, nil
 }
@@ -459,7 +473,7 @@ func (r *Repository) DeleteProductFile(ctx context.Context, id int64) error {
 }
 
 func (r *Repository) AddProductMaterial(ctx context.Context, productID, materialID int64, quantity string) error {
-req := sqlite.AddProductMaterialParams{
+	req := sqlite.AddProductMaterialParams{
 		ProductID:  sql.NullInt64{Int64: productID, Valid: true},
 		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 	}
@@ -468,7 +482,7 @@ req := sqlite.AddProductMaterialParams{
 	}
 	if quantityInt, err := strconv.ParseInt(quantity, 10, 64); err != nil {
 		req.QuantityText = sql.NullString{String: quantity, Valid: true}
-	}else{
+	} else {
 		req.Quantity = quantityInt
 	}
 	err := r.queries.AddProductMaterial(ctx, req)
@@ -568,4 +582,114 @@ func (r *Repository) GetUnitByID(ctx context.Context, id int64) (models.Unit, er
 		ID:   unit.UnitID,
 		Name: unit.Unit,
 	}, parseError(err)
+}
+
+type SearchParams struct {
+	Query  string
+	Sort   string
+	Filter json.RawMessage
+	Limit  int64
+}
+
+func (r *Repository) SearchAll(ctx context.Context, args SearchParams) ([]models.Material, []models.Product, error) {
+	result, err := r.queries.SearchAll(ctx, sqlite.SearchAllParams{
+		Text:  args.Query,
+		Limit: args.Limit,
+	})
+	if err != nil {
+		return nil, nil, parseError(err)
+	}
+
+	materials := make([]models.Material, 0)
+	products := make([]models.Product, 0)
+	for _, item := range result {
+		id, err := strconv.ParseInt(item.RefID, 10, 64)
+		if err != nil {
+			return nil, nil, errors.New("can't parse id returned from search query")
+		}
+
+		name, ok := item.DisplayName.(string)
+		if !ok {
+			return nil, nil, errors.New("can't convert search result name to string")
+		}
+
+		if item.Type == "material" {
+			materials = append(materials, models.Material{
+				ID:          id,
+				PrimaryName: name,
+			})
+		} else {
+			products = append(products, models.Product{
+				ID:   id,
+				Name: name,
+			})
+		}
+	}
+	return materials, products, nil
+}
+
+func (r *Repository) SearchMaterials(ctx context.Context, params SearchParams) ([]models.Material, error) {
+	filter, err := params.Filter.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("can't marshal filter options: %w", err)
+	}
+	result, err := r.queries.SearchMaterials(ctx, sqlite.SearchMaterialsParams{
+		Query: params.Query,
+		Units: filter,
+		Limit: params.Limit,
+	})
+	if err != nil {
+		return nil, parseError(err)
+	}
+
+	materials := make([]models.Material, 0, len(result))
+	for _, item := range result {
+		id, err := strconv.ParseInt(item.RefID, 10, 64)
+		if err != nil {
+			return nil, parseError(err)
+		}
+		quantity := item.Quantity.(string)
+		materials = append(materials, models.Material{
+			ID:          id,
+			PrimaryName: item.DisplayName.String,
+			Unit: models.Unit{
+				Name: item.Unit,
+			},
+			Description: item.Text,
+			Quantity:    quantity,
+		})
+	}
+
+	slices.SortStableFunc(materials, func(a, b models.Material) int {
+		return strings.Compare(a.PrimaryName, b.PrimaryName)
+	})
+	return materials, nil
+}
+
+func (r *Repository) SearchProducts(ctx context.Context, args SearchParams) ([]models.Product, error) {
+	result, err := r.queries.SearchProducts(ctx, sqlite.SearchProductsParams{
+		Text:  args.Query,
+		Limit: args.Limit,
+	})
+	if err != nil {
+		return nil, parseError(err)
+	}
+
+	products := make([]models.Product, 0, len(result))
+	for _, item := range result {
+		id, err := strconv.ParseInt(item.RefID, 10, 64)
+		if err != nil {
+			return nil, parseError(err)
+		}
+		products = append(products, models.Product{
+			ID:          id,
+			Name:        item.DisplayName.String,
+			Description: item.Text,
+		})
+	}
+
+	slices.SortStableFunc(products, func(a, b models.Product) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return products, nil
 }
