@@ -8,16 +8,15 @@ VALUES
     (
         'material',
         NEW.material_id,
-        (
+        COALESCE((
             SELECT
                 group_concat (name, ' ')
             FROM
                 material_names
             WHERE
                 material_id = NEW.material_id
-        ) || ' ' || NEW.description
+        ), '') || ' ' || COALESCE(NEW.description, '')
     );
-
 END;
 -- +goose StatementEnd
 
@@ -35,19 +34,19 @@ VALUES
     (
         'material',
         NEW.material_id,
-        (
+        COALESCE((
             SELECT
                 group_concat (name, ' ')
             FROM
                 material_names
             WHERE
                 material_id = NEW.material_id
-        ) || ' ' || NEW.description
+        ), '') || ' ' || COALESCE(NEW.description, '')
     );
 
 END;
--- +goose StatementEnd
 
+-- +goose StatementEnd
 -- +goose StatementBegin
 CREATE TRIGGER material_ad AFTER DELETE ON materials BEGIN
 DELETE FROM fts_table
@@ -72,21 +71,21 @@ VALUES
     (
         'material',
         NEW.material_id,
-        (
+        COALESCE((
             SELECT
                 group_concat (name, ' ')
             FROM
                 material_names
             WHERE
                 material_id = NEW.material_id
-        ) || ' ' || (
+        ), '') || ' ' || COALESCE((
             SELECT
                 description
             FROM
                 materials
             WHERE
                 material_id = NEW.material_id
-        )
+        ), '')
     );
 
 END;
@@ -105,21 +104,21 @@ VALUES
     (
         'material',
         OLD.material_id,
-        (
+        COALESCE((
             SELECT
                 group_concat (name, ' ')
             FROM
                 material_names
             WHERE
                 material_id = OLD.material_id
-        ) || ' ' || (
+        ), '') || ' ' || COALESCE((
             SELECT
                 description
             FROM
                 materials
             WHERE
                 material_id = OLD.material_id
-        )
+        ), '')
     );
 
 END;
@@ -139,21 +138,21 @@ VALUES
     (
         'material',
         NEW.material_id,
-        (
+        COALESCE((
             SELECT
                 group_concat (name, ' ')
             FROM
                 material_names
             WHERE
                 material_id = NEW.material_id
-        ) || ' ' || (
+        ), '') || ' ' || COALESCE((
             SELECT
                 description
             FROM
                 materials
             WHERE
                 material_id = NEW.material_id
-        )
+        ), '')
     );
 
 END;
@@ -168,7 +167,7 @@ VALUES
     (
         'product',
         NEW.product_id,
-        NEW.name || ' ' || NEW.description
+        COALESCE(NEW.name, '') || ' ' || COALESCE(NEW.description, '')
     );
 
 END;
@@ -188,7 +187,7 @@ VALUES
     (
         'product',
         NEW.product_id,
-        NEW.name || ' ' || NEW.description
+        COALESCE(NEW.name, '') || ' ' || COALESCE(NEW.description, '')
     );
 
 END;
