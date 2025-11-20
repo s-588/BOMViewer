@@ -4,8 +4,6 @@ SELECT
     type,
     ref_id,
     text,
-    quantity,
-    unit,
     bm25(fts_table) AS score
 FROM fts_table;
 

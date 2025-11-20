@@ -24,10 +24,11 @@ type FilesProduct struct {
 	FileID    sql.NullInt64
 }
 
-type FtsAll struct {
+type Ft struct {
 	Type  string
 	RefID string
 	Text  string
+	Score string
 }
 
 type Material struct {
