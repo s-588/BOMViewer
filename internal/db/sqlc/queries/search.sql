@@ -31,6 +31,7 @@ SELECT
     mn.name AS display_name,
     f.text,
     u.unit,
+    u.unit_id,
     COALESCE(pm.quantity, pm.quantity_text) AS quantity,
     score
 FROM fts f
@@ -42,14 +43,9 @@ LEFT JOIN product_materials pm
     ON m.material_id = pm.material_id
 INNER JOIN unit_types u
     ON m.unit_id = u.unit_id
-LEFT JOIN json_each(json(sqlc.arg(units))) je
-    ON m.unit_id = je.value
 WHERE
     f.text MATCH sqlc.arg(query)
-    AND (
-        json_array_length(json(sqlc.arg(units))) = 0
-        OR je.value IS NOT NULL
-    )
+    AND f.type = 'material'
 ORDER BY score ASC
 LIMIT sqlc.arg(limit);
 

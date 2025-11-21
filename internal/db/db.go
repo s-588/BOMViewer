@@ -3,13 +3,10 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"strconv"
-	"strings"
 
 	sqlite "github.com/s-588/BOMViewer/internal/db/generate"
 	"github.com/s-588/BOMViewer/internal/models"
@@ -584,17 +581,10 @@ func (r *Repository) GetUnitByID(ctx context.Context, id int64) (models.Unit, er
 	}, parseError(err)
 }
 
-type SearchParams struct {
-	Query  string
-	Sort   string
-	Filter json.RawMessage
-	Limit  int64
-}
-
-func (r *Repository) SearchAll(ctx context.Context, args SearchParams) ([]models.Material, []models.Product, error) {
+func (r *Repository) SearchAll(ctx context.Context, q string, limit int64) ([]models.Material, []models.Product, error) {
 	result, err := r.queries.SearchAll(ctx, sqlite.SearchAllParams{
-		Text:  args.Query,
-		Limit: args.Limit,
+		Text: q,
+		Limit: limit,
 	})
 	if err != nil {
 		return nil, nil, parseError(err)
@@ -628,15 +618,10 @@ func (r *Repository) SearchAll(ctx context.Context, args SearchParams) ([]models
 	return materials, products, nil
 }
 
-func (r *Repository) SearchMaterials(ctx context.Context, params SearchParams) ([]models.Material, error) {
-	filter, err := params.Filter.MarshalJSON()
-	if err != nil {
-		return nil, fmt.Errorf("can't marshal filter options: %w", err)
-	}
+func (r *Repository) SearchMaterials(ctx context.Context, q string, limit int64) ([]models.Material, error) {
 	result, err := r.queries.SearchMaterials(ctx, sqlite.SearchMaterialsParams{
-		Query: params.Query,
-		Units: filter,
-		Limit: params.Limit,
+		Query: q,
+		Limit: limit,
 	})
 	if err != nil {
 		return nil, parseError(err)
@@ -653,6 +638,7 @@ func (r *Repository) SearchMaterials(ctx context.Context, params SearchParams) (
 			ID:          id,
 			PrimaryName: item.DisplayName.String,
 			Unit: models.Unit{
+				ID: item.UnitID,
 				Name: item.Unit,
 			},
 			Description: item.Text,
@@ -660,16 +646,13 @@ func (r *Repository) SearchMaterials(ctx context.Context, params SearchParams) (
 		})
 	}
 
-	slices.SortStableFunc(materials, func(a, b models.Material) int {
-		return strings.Compare(a.PrimaryName, b.PrimaryName)
-	})
 	return materials, nil
 }
 
-func (r *Repository) SearchProducts(ctx context.Context, args SearchParams) ([]models.Product, error) {
+func (r *Repository) SearchProducts(ctx context.Context, q string, limit int64) ([]models.Product, error) {
 	result, err := r.queries.SearchProducts(ctx, sqlite.SearchProductsParams{
-		Text:  args.Query,
-		Limit: args.Limit,
+		Text:  q,
+		Limit: limit,
 	})
 	if err != nil {
 		return nil, parseError(err)
@@ -688,8 +671,5 @@ func (r *Repository) SearchProducts(ctx context.Context, args SearchParams) ([]m
 		})
 	}
 
-	slices.SortStableFunc(products, func(a, b models.Product) int {
-		return strings.Compare(a.Name, b.Name)
-	})
 	return products, nil
 }

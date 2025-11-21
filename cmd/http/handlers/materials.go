@@ -368,13 +368,8 @@ func (h *Handler) MaterialProductListHandler(w http.ResponseWriter, r *http.Requ
 
 func (h *Handler) MaterialsPicker(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
-	sort := r.URL.Query().Get("sort")
 
-	materials, _, err := h.db.SearchAll(r.Context(), db.SearchParams{
-		Query: q,
-		Sort:  sort,
-		Limit: 10,
-	})
+	materials, _, err := h.db.SearchAll(r.Context(), q, 10)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

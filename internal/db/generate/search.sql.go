@@ -86,6 +86,7 @@ SELECT
     mn.name AS display_name,
     f.text,
     u.unit,
+    u.unit_id,
     COALESCE(pm.quantity, pm.quantity_text) AS quantity,
     score
 FROM fts f
@@ -97,21 +98,15 @@ LEFT JOIN product_materials pm
     ON m.material_id = pm.material_id
 INNER JOIN unit_types u
     ON m.unit_id = u.unit_id
-LEFT JOIN json_each(json(sqlc.arg(units))) je
-    ON m.unit_id = je.value
 WHERE
     f.text MATCH ?1
-    AND (
-        json_array_length(json(?2)) = 0
-        OR je.value IS NOT NULL
-    )
+    AND f.type = 'material'
 ORDER BY score ASC
-LIMIT ?3
+LIMIT ?2
 `
 
 type SearchMaterialsParams struct {
 	Query string
-	Units interface{}
 	Limit int64
 }
 
@@ -120,12 +115,13 @@ type SearchMaterialsRow struct {
 	DisplayName sql.NullString
 	Text        string
 	Unit        string
+	UnitID      int64
 	Quantity    interface{}
 	Score       string
 }
 
 func (q *Queries) SearchMaterials(ctx context.Context, arg SearchMaterialsParams) ([]SearchMaterialsRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchMaterials, arg.Query, arg.Units, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, searchMaterials, arg.Query, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +134,7 @@ func (q *Queries) SearchMaterials(ctx context.Context, arg SearchMaterialsParams
 			&i.DisplayName,
 			&i.Text,
 			&i.Unit,
+			&i.UnitID,
 			&i.Quantity,
 			&i.Score,
 		); err != nil {
