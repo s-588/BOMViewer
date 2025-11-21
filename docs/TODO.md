@@ -1,5 +1,5 @@
 ## Importance 1, must have:
-Delete empty square brackets in search results that appear on every search.
+~~Delete empty square brackets in search results that appear on every search.~~
 Make filters more beatiful, with dropdown lists, definitions, wrap (when list going to the right side and wrap to next line).
 Add filtration in products main page.
 Add filtration in products picker on material view page.
