@@ -32,8 +32,8 @@ func (h *Handler) ProductNewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	description := r.FormValue("description")
-	if err := validateDescription(description); err != nil{
-		slog.Error("Invalid product description", "error", err, "where", "ProductNewHandler")		
+	if err := validateDescription(description); err != nil {
+		slog.Error("Invalid product description", "error", err, "where", "ProductNewHandler")
 		templates.InternalError("ошибка обработки описания продукта: "+err.Error()).Render(r.Context(), w)
 		return
 	}
@@ -230,7 +230,7 @@ func (h *Handler) ProductEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	materials, err := h.db.GetAllMaterial(r.Context())
+	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
 		slog.Error("get all materials", "error", err, "where", "ProductEditHandler")
 		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
@@ -240,7 +240,7 @@ func (h *Handler) ProductEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ProductCreateHandler(w http.ResponseWriter, r *http.Request) {
-	materials, err := h.db.GetAllMaterial(r.Context())
+	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
 		slog.Error("get all materials", "error", err, "where", "ProductEditHandler")
 		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
@@ -262,5 +262,5 @@ func (h *Handler) ProductMaterialListHandler(w http.ResponseWriter, r *http.Requ
 		templates.InternalError("ошибка получения материалов продукта: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	templates.MaterialList(materials).Render(r.Context(), w)
+	templates.MainMaterialPage(materials, templates.MaterialTableArgs{}).Render(r.Context(), w)
 }

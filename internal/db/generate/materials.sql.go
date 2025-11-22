@@ -58,19 +58,24 @@ func (q *Queries) DeleteMaterial(ctx context.Context, materialID int64) error {
 }
 
 const getAllMaterials = `-- name: GetAllMaterials :many
-SELECT
-    materials.material_id, materials.unit_id, materials.description,
-    unit_types.unit AS unit,
-    material_names.name AS name,
-    product_materials.quantity AS quantity,
-    product_materials.quantity_text AS quantity_text
-FROM
-    materials
-    inner join unit_types on materials.unit_id = unit_types.unit_id
-    inner join material_names on material_names.material_id = materials.material_id
-    inner join product_materials on product_materials.material_id = materials.material_id
-where
-    is_primary = TRUE
+SELECT 
+    m.material_id,
+    m.unit_id,
+    m.description,
+    ut.unit,
+    mn.name AS primary_name,
+    pm.quantity,
+    pm.quantity_text,
+    p.product_id,
+    p.name AS product_name
+FROM 
+    materials m
+    INNER JOIN unit_types ut ON m.unit_id = ut.unit_id
+    INNER JOIN material_names mn ON m.material_id = mn.material_id AND mn.is_primary = TRUE
+    LEFT JOIN product_materials pm ON m.material_id = pm.material_id
+    LEFT JOIN products p ON pm.product_id = p.product_id
+ORDER BY 
+    m.material_id
 `
 
 type GetAllMaterialsRow struct {
@@ -78,9 +83,11 @@ type GetAllMaterialsRow struct {
 	UnitID       int64
 	Description  sql.NullString
 	Unit         string
-	Name         string
+	PrimaryName  string
 	Quantity     interface{}
 	QuantityText sql.NullString
+	ProductID    sql.NullInt64
+	ProductName  sql.NullString
 }
 
 func (q *Queries) GetAllMaterials(ctx context.Context) ([]GetAllMaterialsRow, error) {
@@ -97,9 +104,11 @@ func (q *Queries) GetAllMaterials(ctx context.Context) ([]GetAllMaterialsRow, er
 			&i.UnitID,
 			&i.Description,
 			&i.Unit,
-			&i.Name,
+			&i.PrimaryName,
 			&i.Quantity,
 			&i.QuantityText,
+			&i.ProductID,
+			&i.ProductName,
 		); err != nil {
 			return nil, err
 		}

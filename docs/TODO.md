@@ -6,13 +6,15 @@ Add filtration in products main page.
 Add filtration in products picker on material view page.
 Add filtration in material picker on product view page.
 Add sort of products in main products page.
-Add sort of materials in main materials page.
+~~Add sort of materials in main materials page.~~
 Add sort in materials picker on product view page.
-Make sort more beautiful, maybe buttons in column header of tables.
+~~Make sort more beautiful, maybe buttons in column header of tables.~~
+Add description in tables beautiful. For example delete description column from main pages of products and materials, instead add a small button, when user hover on it description will appear on the screen and when user put mouse off the button description disappear.
 Add file upload on materials view page.
 Add file upload on products view page.
 Add file previews for images. For example image with buttons delete and open, but image is also clickable and do same as open button.
-Delete all open buttons in tables, make names of products and materials clickable.
+~~Delete open buttons in material tables, make names of materials clickable.~~
+Delete open buttons in products tables, make names of products clickable.
 Add file previews for pdfs. For example thumbnail of pdf and open and delete button under it, when user press open it opens a pdf in browser.
 Make material view page more beautiful. Add image of material next to material name(material name in the left side and image on the right side of the page). Make table smaller, make vertical line width less(delete margins).
 Make products view page more beautiful. Add image of material next to material name(material name in the left side and image on the right side of the page).

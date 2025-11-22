@@ -6,215 +6,310 @@ import (
 	"slices"
 )
 
-templ MaterialPicker(materials []models.Material, args TableControlsArgs) {
-	<div>
-		<h6 class="fw-semibold mb-2">Select Material</h6>
-		@TableControls(args)
-		@MaterialTable(materials, true, true)
-	</div>
+templ MainMaterialPage(materials []models.Material, args MaterialTableArgs) {
+	@MainMaterialPageHeader()
+	@MainMaterialList(materials, args)
 }
 
-templ MaterialList(materials []models.Material, args TableControlsArgs) {
+templ MainMaterialList(materials []models.Material, args MaterialTableArgs) {
+    <div id="material-table">
+        @MaterialTableControls(args)
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover bg-white">
+                <thead class="table-light">
+                    <tr>
+                        <th>Название</th>
+                        <th style="width: 140px;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    for _, m := range materials {
+                        <tr
+                            hx-get={ fmt.Sprintf("/materials/%d", m.ID) }
+                            hx-target="#content"
+                            hx-push-url={ fmt.Sprintf("/materials/%d", m.ID) }
+                            style="cursor:pointer;"
+                        >
+                            <td class="fw-semibold">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>{ m.PrimaryName }</span>
+                                    if m.Description != "" {
+                                        @HoverDescriptionButton(m.Description)
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex">
+                                    <button
+                                        hx-get={ fmt.Sprintf("/materials/%d/edit", m.ID) }
+                                        hx-target="#content"
+                                        hx-push-url={ fmt.Sprintf("/materials/%d/edit", m.ID) }
+                                        class="btn btn-sm btn-outline-primary"
+                                        hx-stop-propagation="true"
+                                    >
+                                        Редактировать
+                                    </button>
+                                    <button
+                                        hx-delete={ fmt.Sprintf("/materials/%d", m.ID) }
+                                        hx-target="#content"
+                                        hx-confirm="Удалить материал?"
+                                        class="btn btn-sm btn-outline-danger ms-2"
+                                        hx-stop-propagation="true"
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+    // Initialize Bootstrap tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+    
+    // Re-initialize tooltips after HTMX swaps
+    document.addEventListener('htmx:afterSwap', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+    </script>
+}
+
+templ MainMaterialPageHeader() {
 	<div class="d-flex justify-content-between align-items-center mb-3">
 		<h2>Материалы</h2>
-		<button class="btn btn-primary" hx-get="/materials/new" hx-target="#content" hx-swap="innerHTML" hx-push-url="/materials/new">Новый</button>
-	</div>
-	@TableControls(args)
-	<div id="material-table">
-		@MaterialTable(materials, false, false)
+		<button
+			hx-push-url="/materials/new"
+			class="btn btn-primary"
+			hx-get="/materials/new"
+			hx-target="#content"
+		>
+			Новый
+		</button>
 	</div>
 }
 
-type TableControlsArgs struct {
+templ MaterialTableForProduct(rows []ProductMaterialRow, args MaterialTableArgs) {
+	<div id="product-material-table-wrapper">
+		@MaterialTableControls(args)
+		// identical controls, but hx-target below is overridden
+		<div class="table-responsive">
+			<table class="table table-bordered table-hover bg-white align-middle">
+				<thead class="table-light">
+					<tr>
+						<th style="width:45px"></th>
+						<th> Название </th>
+						<th style="width:40px"></th>
+						<th style="width:140px">Кол-во</th>
+					</tr>
+				</thead>
+				<tbody id="product-material-table">
+					for _, row := range rows {
+						<tr
+							class="cursor-pointer"
+							hx-trigger="click"
+							hx-get={ fmt.Sprintf("%s/toggle/%d", args.Action, row.Material.ID) }
+							hx-target="#product-material-table-wrapper"
+							hx-swap="outerHTML"
+						>
+							<td class="text-center align-middle">
+								<input
+									type="checkbox"
+									name="materials"
+									value={ row.Material.ID }
+									checked={ row.Checked }
+									onclick="event.stopPropagation()"
+								/>
+							</td>
+							<td>
+								<span class="fw-semibold">{ row.Material.PrimaryName }</span>
+							</td>
+							<td class="text-center">
+								@HoverDescriptionButton(row.Material.Description)
+							</td>
+							<td>
+								<input
+									type="text"
+									class="form-control form-control-sm"
+									name={ fmt.Sprintf("quantity_%d", row.Material.ID) }
+									value={ row.Quantity }
+									onclick="event.stopPropagation()"
+								/>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+type MaterialTableArgs struct {
 	Action          string
 	Sort            string
-	FiltersUnits    []int64          // selected units
-	FiltersProducts []int64          // selected products
-	AllUnits        []models.Unit    // list from DB
-	AllProducts     []models.Product // list from DB
+	FiltersUnits    []int64
+	FiltersProducts []int64
 	PrimaryOnly     bool
+	AllUnits        []models.Unit
+	AllProducts     []models.Product
+
+	Selected   map[int64]bool
+	Quantities map[int64]string
 }
 
-templ TableControls(args TableControlsArgs) {
-<form
-    hx-get={ args.Action }
-    hx-target="#material-table"
-    hx-push-url="false"
-    class="d-flex flex-column gap-3 mb-3"
-    style="padding: 12px; border: 1px solid #ddd; border-radius: 6px;"
-    hx-indicator="#table-loading"
->
-    <!-- SORT -->
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-
-        <select name="sort"
-            class="form-select"
-            style="max-width: 200px;"
-            hx-trigger="change"
-            hx-get={ args.Action }
-            hx-target="#material-table"
-            hx-include="closest form"
-        >
-            <option value="">Сортировать...</option>
-            <option value="name" selected={ args.Sort == "name" }>Имени ↑</option>
-            <option value="-name" selected={ args.Sort == "-name" }>Имени ↓</option>
-            <option value="unit" selected={ args.Sort == "unit" }>Единице измерения ↑</option>
-            <option value="-unit" selected={ args.Sort == "-unit" }>Единице измерения ↓</option>
-        </select>
-
-        <button type="submit" class="btn btn-outline-secondary">Применить</button>
-    </div>
-
-    <!-- Loading indicator -->
-    <div id="table-loading" class="htmx-indicator">
-        <div class="spinner-border spinner-border-sm" role="status"></div>
-        <span class="ms-2">Загрузка...</span>
-    </div>
-
-    <!-- FILTERS -->
-    <div class="d-flex flex-wrap gap-3 pt-2 border-top">
-
-        <!-- Primary only -->
-        <div class="form-check align-self-center">
-            <input
-                type="checkbox"
-                class="form-check-input"
-                name="primary_only"
-                value="1"
-                checked={ args.PrimaryOnly }
+templ MaterialTableControls(args MaterialTableArgs) {
+    <form
+        hx-get={ args.Action }
+        hx-target="#material-table"
+        hx-push-url="false"
+        class="d-flex flex-column gap-3 mb-3"
+        style="padding: 12px; border: 1px solid #ddd; border-radius: 6px;"
+        hx-indicator="#table-loading"
+    >
+        <!-- SORT CONTROLS -->
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0">Сортировка:</label>
+            <select
+                name="sort"
+                class="form-select"
+                style="max-width: 200px;"
                 hx-trigger="change"
                 hx-get={ args.Action }
                 hx-target="#material-table"
                 hx-include="closest form"
-            />
-            <label class="form-check-label">Только основные</label>
-        </div>
-
-        <!-- Units dropdown -->
-        <div class="dropdown">
-            <button
-                class="btn btn-outline-primary dropdown-toggle"
-                type="button"
-                data-bs-toggle="dropdown"
             >
-                Единицы измерения
-                if len(args.FiltersUnits) > 0 {
-                    <span class="text-muted">({ len(args.FiltersUnits) })</span>
-                }
-            </button>
-
-            <div class="dropdown-menu p-3" style="min-width: 280px;">
-                <div class="d-flex flex-wrap gap-3">
-                    for _, u := range args.AllUnits {
-                        <div class="form-check">
-                            <input
-                                type="checkbox"
-                                class="form-check-input"
-                                name="units"
-                                value={ fmt.Sprintf("%d", u.ID) }
-                                checked={ slices.Contains(args.FiltersUnits, u.ID) }
-                                hx-trigger="change"
-                                hx-get={ args.Action }
-                                hx-target="#material-table"
-                                hx-include="closest form"
-                            />
-                            <label class="form-check-label">{ u.Name }</label>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <!-- Products dropdown -->
-        <div class="dropdown">
-            <button
-                class="btn btn-outline-primary dropdown-toggle"
-                type="button"
-                data-bs-toggle="dropdown"
-            >
-                Изделия
-                if len(args.FiltersProducts) > 0 {
-                    <span class="text-muted">({ len(args.FiltersProducts) })</span>
-                }
-            </button>
-
-            <div class="dropdown-menu p-3" style="min-width: 280px;">
-                <div class="d-flex flex-wrap gap-3">
-                    for _, p := range args.AllProducts {
-                        <div class="form-check">
-                            <input
-                                type="checkbox"
-                                class="form-check-input"
-                                name="products"
-                                value={ fmt.Sprintf("%d", p.ID) }
-                                checked={ slices.Contains(args.FiltersProducts, p.ID) }
-                                hx-trigger="change"
-                                hx-get={ args.Action }
-                                hx-target="#material-table"
-                                hx-include="closest form"
-                            />
-                            <label class="form-check-label">{ p.Name }</label>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-    </div>
-</form>
-}
-
-
-templ MaterialTable(materials []models.Material, compact bool, selectable bool) {
-	<div class="table-responsive">
-		<table class="table table-bordered table-hover bg-white align-middle">
-			<thead class="table-light">
-				<tr>
-					<th>Название</th>
-					<th>Описание</th>
-					if !compact {
-						<th>Действия</th>
-					}
-				</tr>
-			</thead>
-			<tbody>
-				for _, m := range materials {
-					<tr
-						if selectable {
-							hx-get={ fmt.Sprintf("/materials/select/%d", m.ID) }
-							hx-target="#material-selection"
-							style="cursor:pointer"
-						}
-					>
-						<td>{ m.PrimaryName }</td>
-						<td>{ m.Description }</td>
-						if !compact {
-							<td>
-								<a
-									class="btn btn-sm btn-outline-secondary"
-									hx-get={ fmt.Sprintf("/materials/%d", m.ID) }
-									hx-target="#content"
-									hx-push-url={ fmt.Sprintf("/materials/%d", m.ID) }
-								>Просмотр</a>
-								<button
-									class="btn btn-sm btn-outline-primary ms-2"
-									hx-get={ fmt.Sprintf("/materials/%d/edit", m.ID) }
-									hx-target="#content"
-									hx-push-url={ fmt.Sprintf("/materials/%d/edit", m.ID) }
-								>Редактировать</button>
-								<button
-									class="btn btn-sm btn-outline-danger ms-2"
-									hx-delete={ fmt.Sprintf("/materials/%d", m.ID) }
-									hx-target="#content"
-									hx-confirm="Удалить материал?"
-								>Удалить</button>
-							</td>
-						}
-					</tr>
+                <option value="">По умолчанию</option>
+                <option value="name" 
+				if args.Sort == "name"{
+	selected				
 				}
-			</tbody>
-		</table>
-	</div>
+				>Имени ↑</option>
+                <option value="-name" 
+				if args.Sort == "-name"{
+	selected				
+				}
+				>Имени ↓</option>
+                <option value="unit" 
+				if args.Sort == "unit"{
+	selected				
+				}
+				>Единице измерения ↑</option>
+                <option value="-unit" 
+				if args.Sort == "-unit"{
+	selected				
+				}
+				>Единице измерения ↓</option>
+            </select>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="d-flex flex-wrap gap-3 pt-2 border-top">
+            <!-- Primary only -->
+            <div class="form-check align-self-center">
+                <input
+                    type="checkbox"
+                    class="form-check-input"
+                    name="primary_only"
+                    value="1"
+                    if args.PrimaryOnly {
+                        checked
+                    }
+                    hx-trigger="change"
+                    hx-get={ args.Action }
+                    hx-target="#material-table"
+                    hx-include="closest form"
+                />
+                <label class="form-check-label">Только основные</label>
+            </div>
+            <!-- Units dropdown -->
+            <div class="dropdown">
+                <button
+                    class="btn btn-outline-primary dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                >
+                    Единицы измерения
+                    if len(args.FiltersUnits) > 0 {
+                        <span class="text-muted">({ len(args.FiltersUnits) })</span>
+                    }
+                </button>
+                <div class="dropdown-menu p-3" style="min-width: 280px;">
+                    <div class="d-flex flex-wrap gap-3">
+                        for _, u := range args.AllUnits {
+                            <div class="form-check">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    name="units"
+                                    value={ fmt.Sprintf("%d", u.ID) }
+                                    if slices.Contains(args.FiltersUnits, u.ID) {
+                                        checked
+                                    }
+                                    hx-trigger="change"
+                                    hx-get={ args.Action }
+                                    hx-target="#material-table"
+                                    hx-include="closest form"
+                                />
+                                <label class="form-check-label">{ u.Name }</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <!-- Products dropdown -->
+            <div class="dropdown">
+                <button
+                    class="btn btn-outline-primary dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                >
+                    Изделия
+                    if len(args.FiltersProducts) > 0 {
+                        <span class="text-muted">({ len(args.FiltersProducts) })</span>
+                    }
+                </button>
+                <div class="dropdown-menu p-3" style="min-width: 280px;">
+                    <div class="d-flex flex-wrap gap-3">
+                        for _, p := range args.AllProducts {
+                            <div class="form-check">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    name="products"
+                                    value={ fmt.Sprintf("%d", p.ID) }
+                                    if slices.Contains(args.FiltersProducts, p.ID) {
+                                        checked
+                                    }
+                                    hx-trigger="change"
+                                    hx-get={ args.Action }
+                                    hx-target="#material-table"
+                                    hx-include="closest form"
+                                />
+                                <label class="form-check-label">{ p.Name }</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading indicator -->
+        <div id="table-loading" class="htmx-indicator">
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <span class="ms-2">Загрузка...</span>
+        </div>
+    </form>
 }
 
 templ MaterialForm(material models.Material, units []models.Unit, products []models.Product, action string) {

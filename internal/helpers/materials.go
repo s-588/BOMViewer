@@ -1,9 +1,10 @@
 package helpers
 
 import (
-	"strings"
+	"log/slog"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/s-588/BOMViewer/internal/models"
 )
@@ -52,12 +53,14 @@ func FilterMaterials(materials []models.Material, filter MaterialFilterArgs) []m
 func passesMaterialFilters(material models.Material, filter MaterialFilterArgs) bool {
 	// Primary name filter
 	if filter.PrimaryOnly && material.PrimaryName == "" {
+		slog.Debug("material is not passes the primary only filter", "material",material, "PrimaryOnly", filter.PrimaryOnly)
 		return false
 	}
 
 	// Product filter - material must be used in specified products
 	if len(filter.ProductIDs) > 0 {
 		if !isMaterialUsedInProducts(material, filter.ProductIDs) {
+		slog.Debug("material is not passes the product filter", "material",material, "ProductIDs", filter.ProductIDs)
 			return false
 		}
 	}
@@ -65,6 +68,7 @@ func passesMaterialFilters(material models.Material, filter MaterialFilterArgs) 
 	// Unit filter
 	if len(filter.UnitIDs) > 0 {
 		if !contains(filter.UnitIDs, material.Unit.ID) {
+		slog.Debug("material is not passes the unit filter", "material",material, "UnitIDs", filter.UnitIDs)
 			return false
 		}
 	}
@@ -72,6 +76,7 @@ func passesMaterialFilters(material models.Material, filter MaterialFilterArgs) 
 	// Quantity range filter
 	if filter.MinQuantity != nil || filter.MaxQuantity != nil {
 		if !passesQuantityFilter(material.Quantity, filter) {
+		slog.Debug("material is not passes the quantity filter", "material",material, "MinQuantity", filter.MinQuantity, "MaxQuantity", filter.MaxQuantity)
 			return false
 		}
 	}

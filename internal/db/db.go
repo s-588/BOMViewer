@@ -56,40 +56,52 @@ func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, er
 	if err != nil {
 		return nil, parseError(err)
 	}
-	materials := make([]models.Material, 0, len(rows))
-	for _, row := range rows {
-		material := models.Material{
-			ID: row.MaterialID,
-			Unit: models.Unit{
-				ID:   row.UnitID,
-				Name: row.Name,
-			},
-			Description: row.Description.String,
-		}
-
-		if q, ok := row.Quantity.(string); ok {
-			material.Quantity = q
-		} else {
-			material.Quantity = row.QuantityText.String
-		}
-
-		nameRows, err := r.queries.GetMaterialNames(ctx, material.ID)
-		if err != nil {
-			return nil, parseError(err)
-		}
-		names := make([]string, 0, len(nameRows))
-		for _, name := range nameRows {
-			names = append(names, name.Name)
-			if name.IsPrimary {
-				material.PrimaryName = name.Name
-			}
-		}
-		material.Names = names
-
-		materials = append(materials, material)
-	}
-
-	return materials, nil
+ // Group by material ID and aggregate products
+    materialsMap := make(map[int64]*models.Material)
+    
+    for _, row := range rows {
+        materialID := row.MaterialID
+        
+        // Create material if it doesn't exist
+        if _, exists := materialsMap[materialID]; !exists {
+            material := &models.Material{
+                ID:   materialID,
+                Unit: models.Unit{
+                    ID:   row.UnitID,
+                    Name: row.Unit,
+                },
+                Description: row.Description.String,
+                PrimaryName: row.PrimaryName,
+                Names:       []string{row.PrimaryName},
+                Products:    []models.Product{},
+            }
+            
+            if q, ok := row.Quantity.(string); ok {
+                material.Quantity = q
+            } else {
+                material.Quantity = row.QuantityText.String
+            }
+            
+            materialsMap[materialID] = material
+        }
+        
+        // Add product if it exists for this material
+        if row.ProductID.Valid {
+            product := models.Product{
+                ID:   row.ProductID.Int64,
+                Name: row.ProductName.String,
+            }
+            materialsMap[materialID].Products = append(materialsMap[materialID].Products, product)
+        }
+    }
+    
+    // Convert map to slice
+    materials := make([]models.Material, 0, len(materialsMap))
+    for _, material := range materialsMap {
+        materials = append(materials, *material)
+    }
+    
+    return materials, nil
 }
 
 func (r *Repository) InsertMaterial(ctx context.Context, material models.Material) (models.Material, error) {

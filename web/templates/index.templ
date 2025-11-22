@@ -7,7 +7,7 @@ import (
 )
 
 // Update the function signature to accept TableControlsArgs
-templ Index(ctx context.Context, materials []models.Material, products []models.Product, tableArgs TableControlsArgs) {
+templ Index(ctx context.Context, materials []models.Material, products []models.Product, tableArgs MaterialTableArgs) {
     <html lang="ru">
         <head>
             <meta charset="UTF-8"/>
@@ -20,7 +20,7 @@ templ Index(ctx context.Context, materials []models.Material, products []models.
         <body class="bg-light">
             @header()
             <div class="container mb-5" id="content">
-                @MaterialList(materials, tableArgs)  <!-- Pass the actual tableArgs -->
+                @MainMaterialPage(materials, tableArgs)  
             </div>
             <div id="modal-container"></div>
         </body>

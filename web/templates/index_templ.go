@@ -16,7 +16,7 @@ import (
 )
 
 // Update the function signature to accept TableControlsArgs
-func Index(ctx context.Context, materials []models.Material, products []models.Product, tableArgs TableControlsArgs) templ.Component {
+func Index(ctx context.Context, materials []models.Material, products []models.Product, tableArgs MaterialTableArgs) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -49,11 +49,11 @@ func Index(ctx context.Context, materials []models.Material, products []models.P
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = MaterialList(materials, tableArgs).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = MainMaterialPage(materials, tableArgs).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<!-- Pass the actual tableArgs --></div><div id=\"modal-container\"></div></body><script src=\"/static/js/bootstrap.bundle.min.js\"></script><script src=\"/static/js/htmx.min.js\"></script></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><div id=\"modal-container\"></div></body><script src=\"/static/js/bootstrap.bundle.min.js\"></script><script src=\"/static/js/htmx.min.js\"></script></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

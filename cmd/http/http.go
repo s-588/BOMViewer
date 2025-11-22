@@ -22,7 +22,7 @@ func NewServer(cancel context.CancelFunc, port string, repo *db.Repository) *Ser
 		cancel:  cancel,
 		handler: handlers.NewHandler(repo),
 		Port:    port,
-		mux: http.NewServeMux(),
+		mux:     http.NewServeMux(),
 	}
 }
 
@@ -39,10 +39,10 @@ func (s *Server) setupPaths() {
 	s.mux.Handle("/static/", http.FileServer(http.Dir("web/")))
 	s.mux.HandleFunc("/exit", s.stop)
 
-	s.mux.HandleFunc("GET /search", s.handler.SearchHandler)                              // return list of materials with checkboxes for forms
-s.mux.HandleFunc("GET /materials", s.handler.MaterialListHandler)           // Full page
-	s.mux.HandleFunc("GET /materials/table", s.handler.MaterialTableHandler)    // Table only (for HTMX)
-	s.mux.HandleFunc("GET /materials/picker", s.handler.MaterialsPicker)                              // return list of materials with checkboxes for forms
+	s.mux.HandleFunc("GET /search", s.handler.SearchHandler)                                       // return list of materials with checkboxes for forms
+	s.mux.HandleFunc("GET /materials", s.handler.MaterialPageHandler)                              // Full page
+	s.mux.HandleFunc("GET /materials/table", s.handler.MaterialTableHandler)                       // Table only (for HTMX)
+	s.mux.HandleFunc("GET /materials/picker", s.handler.MaterialsPicker)                           // return list of materials with checkboxes for forms
 	s.mux.HandleFunc("POST /materials", s.handler.MaterialNewHandler)                              // create new material, return new list of materials
 	s.mux.HandleFunc("GET /materials/{id}", s.handler.MaterialViewHandler)                         // return material by id
 	s.mux.HandleFunc("POST /materials/{id}", s.handler.MaterialUpdateHandler)                      // update material, return updated material
