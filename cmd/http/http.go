@@ -54,7 +54,8 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("GET /materials/{id}/edit", s.handler.MaterialEditHandler)                    // return form for editing material
 	s.mux.HandleFunc("GET /materials/new", s.handler.MaterialCreateHandler)                        // return form for creating new material
 
-	s.mux.HandleFunc("GET /products", s.handler.ProductListHandler)                              // return list of products
+	s.mux.HandleFunc("GET /products", s.handler.ProductPageHandler)
+	s.mux.HandleFunc("GET /products/table", s.handler.ProductTableHandler)
 	s.mux.HandleFunc("POST /products", s.handler.ProductNewHandler)                              // create new product, return new list of products
 	s.mux.HandleFunc("GET /products/{id}", s.handler.ProductViewHandler)                         // return product by id
 	s.mux.HandleFunc("POST /products/{id}", s.handler.ProductNewHandler)                         // update product, return updated product

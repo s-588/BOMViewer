@@ -56,52 +56,52 @@ func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, er
 	if err != nil {
 		return nil, parseError(err)
 	}
- // Group by material ID and aggregate products
-    materialsMap := make(map[int64]*models.Material)
-    
-    for _, row := range rows {
-        materialID := row.MaterialID
-        
-        // Create material if it doesn't exist
-        if _, exists := materialsMap[materialID]; !exists {
-            material := &models.Material{
-                ID:   materialID,
-                Unit: models.Unit{
-                    ID:   row.UnitID,
-                    Name: row.Unit,
-                },
-                Description: row.Description.String,
-                PrimaryName: row.PrimaryName,
-                Names:       []string{row.PrimaryName},
-                Products:    []models.Product{},
-            }
-            
-            if q, ok := row.Quantity.(string); ok {
-                material.Quantity = q
-            } else {
-                material.Quantity = row.QuantityText.String
-            }
-            
-            materialsMap[materialID] = material
-        }
-        
-        // Add product if it exists for this material
-        if row.ProductID.Valid {
-            product := models.Product{
-                ID:   row.ProductID.Int64,
-                Name: row.ProductName.String,
-            }
-            materialsMap[materialID].Products = append(materialsMap[materialID].Products, product)
-        }
-    }
-    
-    // Convert map to slice
-    materials := make([]models.Material, 0, len(materialsMap))
-    for _, material := range materialsMap {
-        materials = append(materials, *material)
-    }
-    
-    return materials, nil
+	// Group by material ID and aggregate products
+	materialsMap := make(map[int64]*models.Material)
+
+	for _, row := range rows {
+		materialID := row.MaterialID
+
+		// Create material if it doesn't exist
+		if _, exists := materialsMap[materialID]; !exists {
+			material := &models.Material{
+				ID: materialID,
+				Unit: models.Unit{
+					ID:   row.UnitID,
+					Name: row.Unit,
+				},
+				Description: row.Description.String,
+				PrimaryName: row.PrimaryName,
+				Names:       []string{row.PrimaryName},
+				Products:    []models.Product{},
+			}
+
+			if q, ok := row.Quantity.(string); ok {
+				material.Quantity = q
+			} else {
+				material.Quantity = row.QuantityText.String
+			}
+
+			materialsMap[materialID] = material
+		}
+
+		// Add product if it exists for this material
+		if row.ProductID.Valid {
+			product := models.Product{
+				ID:   row.ProductID.Int64,
+				Name: row.ProductName.String,
+			}
+			materialsMap[materialID].Products = append(materialsMap[materialID].Products, product)
+		}
+	}
+
+	// Convert map to slice
+	materials := make([]models.Material, 0, len(materialsMap))
+	for _, material := range materialsMap {
+		materials = append(materials, *material)
+	}
+
+	return materials, nil
 }
 
 func (r *Repository) InsertMaterial(ctx context.Context, material models.Material) (models.Material, error) {
@@ -363,15 +363,58 @@ func (r *Repository) GetAllProducts(ctx context.Context) ([]models.Product, erro
 		return nil, parseError(err)
 	}
 
-	products := make([]models.Product, 0, len(productRows))
+	// Group by product ID and aggregate materials
+	productsMap := make(map[int64]*models.Product)
+
 	for _, row := range productRows {
-		product := models.Product{
-			ID:          row.ProductID,
-			Name:        row.Name,
-			Description: row.Description.String,
+		productID := row.ProductID
+
+		// Create product if it doesn't exist
+		if _, exists := productsMap[productID]; !exists {
+			product := &models.Product{
+				ID:          productID,
+				Name:        row.Name,
+				Description: row.Description.String,
+				Materials:   []models.Material{},
+			}
+			productsMap[productID] = product
 		}
-		products = append(products, product)
+
+		// Add material if it exists for this product
+		if row.MaterialID.Valid {
+			var quantity string
+			switch qt := row.Quantity.(type) {
+			case int64:
+				quantity = fmt.Sprintf("%d", qt)
+			case float64:
+				quantity = fmt.Sprintf("%.3f", qt)
+			case string:
+				quantity = qt
+			default:
+				if row.QuantityText.Valid {
+					quantity = row.QuantityText.String
+				}
+			}
+
+			material := models.Material{
+				ID: row.MaterialID.Int64,
+				Unit: models.Unit{
+					ID:   row.UnitID.Int64,
+					Name: row.UnitName.String,
+				},
+				PrimaryName: row.MaterialName.String,
+				Quantity:    quantity,
+			}
+			productsMap[productID].Materials = append(productsMap[productID].Materials, material)
+		}
 	}
+
+	// Convert map to slice
+	products := make([]models.Product, 0, len(productsMap))
+	for _, product := range productsMap {
+		products = append(products, *product)
+	}
+
 	return products, nil
 }
 
@@ -595,7 +638,7 @@ func (r *Repository) GetUnitByID(ctx context.Context, id int64) (models.Unit, er
 
 func (r *Repository) SearchAll(ctx context.Context, q string, limit int64) ([]models.Material, []models.Product, error) {
 	result, err := r.queries.SearchAll(ctx, sqlite.SearchAllParams{
-		Text: q,
+		Text:  q,
 		Limit: limit,
 	})
 	if err != nil {
@@ -650,7 +693,7 @@ func (r *Repository) SearchMaterials(ctx context.Context, q string, limit int64)
 			ID:          id,
 			PrimaryName: item.DisplayName.String,
 			Unit: models.Unit{
-				ID: item.UnitID,
+				ID:   item.UnitID,
 				Name: item.Unit,
 			},
 			Description: item.Text,

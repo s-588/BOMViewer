@@ -41,32 +41,32 @@ func (h *Handler) MaterialPageHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.SortMaterials(filteredMaterials, sortConfig)
 
 	templates.MainMaterialPage(filteredMaterials, templates.MaterialTableArgs{
-		Action: "/materials/table",
-		Sort: "name",
-		AllUnits: units,
+		Action:      "/materials/table",
+		Sort:        "name",
+		AllUnits:    units,
 		AllProducts: products,
-		Selected: make(map[int64]bool),
-		Quantities: make(map[int64]string),
+		Selected:    make(map[int64]bool),
+		Quantities:  make(map[int64]string),
 	}).Render(r.Context(), w)
 }
 
 func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
- // Parse form data (includes both URL query and form parameters)
-    if err := r.ParseForm(); err != nil {
-        // handle error
-    }
-    
-    // Get all parameters from form data
-    sort := r.FormValue("sort")
-    primaryOnly := r.FormValue("primary_only") == "1"
-    
-    var filtersUnits, filtersProducts []int64
-    if units := r.Form["units"]; len(units) > 0 {
-        filtersUnits, _ = helpers.StringToInt64Slice(units)
-    }
-    if products := r.Form["products"]; len(products) > 0 {
-        filtersProducts, _ = helpers.StringToInt64Slice(products)
-    }
+	// Parse form data (includes both URL query and form parameters)
+	if err := r.ParseForm(); err != nil {
+		// handle error
+	}
+
+	// Get all parameters from form data
+	sort := r.FormValue("sort")
+	primaryOnly := r.FormValue("primary_only") == "1"
+
+	var filtersUnits, filtersProducts []int64
+	if units := r.Form["units"]; len(units) > 0 {
+		filtersUnits, _ = helpers.StringToInt64Slice(units)
+	}
+	if products := r.Form["products"]; len(products) > 0 {
+		filtersProducts, _ = helpers.StringToInt64Slice(products)
+	}
 
 	// Get all materials and apply filters
 	allMaterials, err := h.db.GetAllMaterials(r.Context())
@@ -79,8 +79,8 @@ func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
 	// Apply filtering and sorting using your helper functions
 	filteredMaterials := helpers.FilterMaterials(allMaterials, helpers.MaterialFilterArgs{
 		PrimaryOnly: primaryOnly,
-		ProductIDs: filtersProducts,
-		UnitIDs: filtersUnits,
+		ProductIDs:  filtersProducts,
+		UnitIDs:     filtersUnits,
 	})
 
 	// Apply sorting
@@ -365,19 +365,20 @@ func (h *Handler) MaterialCreateHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) MaterialProductListHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialProductListHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
-		return
-	}
-	products, err := h.db.GetMaterialProducts(r.Context(), id)
-	if err != nil {
-		slog.Error("get material products", "error", err, "where", "MaterialProductListHandler")
-		templates.InternalError("ошибка получения списка продуктов материала: "+err.Error()).Render(r.Context(), w)
-		return
-	}
-	templates.ProductList(products).Render(r.Context(), w)
+	//TODO:
+	// id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	// if err != nil {
+	// 	slog.Error("parse material id", "error", err, "where", "MaterialProductListHandler")
+	// 	templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+	// 	return
+	// }
+	// products, err := h.db.GetMaterialProducts(r.Context(), id)
+	// if err != nil {
+	// 	slog.Error("get material products", "error", err, "where", "MaterialProductListHandler")
+	// 	templates.InternalError("ошибка получения списка продуктов материала: "+err.Error()).Render(r.Context(), w)
+	// 	return
+	// }
+	// templates.ProductList(products).Render(r.Context(), w)
 }
 
 func (h *Handler) MaterialsPicker(w http.ResponseWriter, r *http.Request) {

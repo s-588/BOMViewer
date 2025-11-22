@@ -7,18 +7,93 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/s-588/BOMViewer/internal/helpers"
 	"github.com/s-588/BOMViewer/internal/models"
 	"github.com/s-588/BOMViewer/web/templates"
 )
 
-func (h *Handler) ProductListHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ProductPageHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse initial filter parameters
+	r.ParseForm()
+
+	sort := r.FormValue("sort")
+
+	// Get all products WITH materials
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("get all products", "error", err, "where", "ProductListHandler")
+		slog.Error("get all products with materials", "error", err, "where", "ProductPageHandler")
 		templates.InternalError("ошибка получения списка продуктов: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	templates.ProductList(products).Render(r.Context(), w)
+
+	// Apply sorting
+	sortConfig := helpers.ParseSortString(sort)
+	helpers.SortProducts(products, sortConfig)
+
+	// Get materials for filter dropdowns
+	materials, err := h.db.GetAllMaterials(r.Context())
+	if err != nil {
+		slog.Error("get all materials for filters", "error", err, "where", "ProductPageHandler")
+	}
+
+	// Parse material filters from form
+	var filtersMaterials []int64
+	if materialIDs := r.Form["materials"]; len(materialIDs) > 0 {
+		filtersMaterials, _ = helpers.StringToInt64Slice(materialIDs)
+	}
+
+	templates.MainProductPage(products, templates.ProductTableArgs{
+		Action:           "/products/table",
+		Sort:             sort,
+		FiltersMaterials: filtersMaterials,
+		AllMaterials:     materials,
+	}).Render(r.Context(), w)
+}
+
+func (h *Handler) ProductTableHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		templates.InternalError("ошибка обработки формы").Render(r.Context(), w)
+		return
+	}
+
+	sort := r.FormValue("sort")
+
+	// Get all products WITH materials
+	products, err := h.db.GetAllProducts(r.Context())
+	if err != nil {
+		slog.Error("get all products with materials", "error", err, "where", "ProductTableHandler")
+		templates.InternalError("ошибка получения списка продуктов").Render(r.Context(), w)
+		return
+	}
+
+	// Apply sorting
+	sortConfig := helpers.ParseSortString(sort)
+	helpers.SortProducts(products, sortConfig)
+
+	// Get materials for filter dropdowns
+	materials, err := h.db.GetAllMaterials(r.Context())
+	if err != nil {
+		slog.Error("get all materials for filters", "error", err, "where", "ProductTableHandler")
+		// Continue without materials
+	}
+
+	// Parse material filters from form
+	var filtersMaterials []int64
+	if materialIDs := r.Form["materials"]; len(materialIDs) > 0 {
+		filtersMaterials, _ = helpers.StringToInt64Slice(materialIDs)
+	}
+
+	filteredProducts := helpers.FilterProducts(products, helpers.ProductFilterArgs{
+		MaterialIDs: filtersMaterials,
+	})
+
+	templates.MainProductList(filteredProducts, templates.ProductTableArgs{
+		Action:           "/products/table",
+		Sort:             sort,
+		FiltersMaterials: filtersMaterials,
+		AllMaterials:     materials,
+	}).Render(r.Context(), w)
 }
 
 func (h *Handler) ProductNewHandler(w http.ResponseWriter, r *http.Request) {

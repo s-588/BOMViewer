@@ -74,22 +74,56 @@ func (q *Queries) DeleteProductMaterial(ctx context.Context, arg DeleteProductMa
 }
 
 const getAllProducts = `-- name: GetAllProducts :many
-SELECT
-    product_id, name, description
-FROM
-    products
+SELECT 
+    p.product_id,
+    p.name,
+    p.description,
+    pm.material_id,
+    mn.name as material_name,
+    m.unit_id,
+    ut.unit as unit_name,
+    pm.quantity,
+    pm.quantity_text
+FROM products p
+LEFT JOIN product_materials pm ON p.product_id = pm.product_id
+LEFT JOIN materials m ON pm.material_id = m.material_id
+LEFT JOIN material_names mn ON m.material_id = mn.material_id AND mn.is_primary = TRUE
+LEFT JOIN unit_types ut ON m.unit_id = ut.unit_id
+ORDER BY p.product_id
 `
 
-func (q *Queries) GetAllProducts(ctx context.Context) ([]Product, error) {
+type GetAllProductsRow struct {
+	ProductID    int64
+	Name         string
+	Description  sql.NullString
+	MaterialID   sql.NullInt64
+	MaterialName sql.NullString
+	UnitID       sql.NullInt64
+	UnitName     sql.NullString
+	Quantity     interface{}
+	QuantityText sql.NullString
+}
+
+func (q *Queries) GetAllProducts(ctx context.Context) ([]GetAllProductsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllProducts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Product
+	var items []GetAllProductsRow
 	for rows.Next() {
-		var i Product
-		if err := rows.Scan(&i.ProductID, &i.Name, &i.Description); err != nil {
+		var i GetAllProductsRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.Name,
+			&i.Description,
+			&i.MaterialID,
+			&i.MaterialName,
+			&i.UnitID,
+			&i.UnitName,
+			&i.Quantity,
+			&i.QuantityText,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
