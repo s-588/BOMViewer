@@ -8,12 +8,12 @@ import (
 
 templ MainMaterialPage(materials []models.Material, args MaterialTableArgs) {
 	@MainMaterialPageHeader()
+    @MaterialTableControls(args)
 	@MainMaterialList(materials, args)
 }
 
 templ MainMaterialList(materials []models.Material, args MaterialTableArgs) {
     <div id="material-table">
-        @MaterialTableControls(args)
         <div class="table-responsive">
             <table class="table table-bordered table-hover bg-white">
                 <thead class="table-light">
