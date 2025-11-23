@@ -22,13 +22,13 @@ install-tools:  ## Install development tools
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 	
-generate: fmt vet ## Generate templ and sqlc code
+generate: ## Generate templ and sqlc code
 	@echo "Generating code..."
 	@cd $(SQLC_DIR) && sqlc generate
 	@templ generate
 	@echo "Code generation complete!"
 	
-build: generate ## Build the application
+build: generate fmt vet ## Build the application
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	go build $(LD_FLAGS) -tags "$(GO_TAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PACKAGE)
@@ -46,3 +46,8 @@ fmt:  ## Format Go code
 
 vet:  ## Run go vet
 	go vet -tags "$(GO_TAGS)" ./...
+	
+clean:
+	go clean -cache
+	go clean -modcache
+	go clean -testcache
