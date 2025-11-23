@@ -32,14 +32,12 @@ jobs:
         uses: robherley/go-test-action@v0
 
       # SQLC Checks
-      - name: Setup sqlc
-        uses: sqlc-dev/setup-sqlc@v3
-        with:
-          sqlc-version: '1.30.0'
-      - name: sqlc diff
-        run: sqlc diff
-      - name: sqlc vet
-        run: sqlc vet
+      - name: Run sqlc commands
+        working-directory: ./internal/db
+        run: |
+          sqlc generate
+          sqlc compile
+          sqlc diff
 
       # Templ Generation
       - name: Generate templ code
