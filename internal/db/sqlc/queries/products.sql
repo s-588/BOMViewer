@@ -1,5 +1,5 @@
 -- name: GetAllProducts :many
-SELECT 
+SELECT
     p.product_id,
     p.name,
     p.description,
@@ -9,12 +9,15 @@ SELECT
     ut.unit as unit_name,
     pm.quantity,
     pm.quantity_text
-FROM products p
-LEFT JOIN product_materials pm ON p.product_id = pm.product_id
-LEFT JOIN materials m ON pm.material_id = m.material_id
-LEFT JOIN material_names mn ON m.material_id = mn.material_id AND mn.is_primary = TRUE
-LEFT JOIN unit_types ut ON m.unit_id = ut.unit_id
-ORDER BY p.product_id;
+FROM
+    products p
+    LEFT JOIN product_materials pm ON p.product_id = pm.product_id
+    LEFT JOIN materials m ON pm.material_id = m.material_id
+    LEFT JOIN material_names mn ON m.material_id = mn.material_id
+    AND mn.is_primary = TRUE
+    LEFT JOIN unit_types ut ON m.unit_id = ut.unit_id
+ORDER BY
+    p.product_id;
 
 -- name: InsertProduct :one
 INSERT INTO

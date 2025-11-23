@@ -2,21 +2,23 @@ package templates
 
 templ header() {
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
-			<div class="container-fluid">
-				<a class="navbar-brand" href="/">BOM Manager</a>
-				@SearchBar("all", "main")
-				<div>
-					<a 
+		<div class="container-fluid">
+			<a class="navbar-brand" href="/">BOM Manager</a>
+			@SearchBar("all", "main")
+			<div>
+				<a
 					hx-get="/materials?tab=materials"
 					hx-target="#content"
 					hx-push-url="/materials"
-					class="btn btn-outline-light btn-sm">Материалы</a>
-					<a 
+					class="btn btn-outline-light btn-sm"
+				>Материалы</a>
+				<a
 					hx-get="/products?tab=products"
 					hx-target="#content"
 					hx-push-url="/products"
-					class="btn btn-outline-light btn-sm ms-2">Продукты</a>
-				</div>
+					class="btn btn-outline-light btn-sm ms-2"
+				>Продукты</a>
 			</div>
-		</nav>
+		</div>
+	</nav>
 }

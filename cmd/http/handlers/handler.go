@@ -38,10 +38,10 @@ func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
 
 	// Create proper TableControlsArgs
 	tableArgs := templates.MaterialTableArgs{
-		Action:          "/materials/table",
-		Sort:            "name",
-		AllUnits:        units,
-		AllProducts:     products,
+		Action:      "/materials/table",
+		Sort:        "name",
+		AllUnits:    units,
+		AllProducts: products,
 	}
 
 	err = templates.Index(r.Context(), materials, products, tableArgs).Render(r.Context(), w)

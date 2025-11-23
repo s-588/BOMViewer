@@ -78,7 +78,7 @@ func ParseSortString(sortStr string) SortConfig {
 	}
 
 	config := SortConfig{Order: "asc"}
-	
+
 	if strings.HasPrefix(sortStr, "-") {
 		config.Field = sortStr[1:]
 		config.Order = "desc"

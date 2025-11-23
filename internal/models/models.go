@@ -19,10 +19,10 @@ type Product struct {
 	ID          int64
 	Name        string
 	Description string
-// How many of material used in this product. 
-// This field used only in MaterialView situation where list of products use same material.
-	Quantity    string
-	Materials   []Material
+	// How many of material used in this product.
+	// This field used only in MaterialView situation where list of products use same material.
+	Quantity  string
+	Materials []Material
 }
 
 type File struct {

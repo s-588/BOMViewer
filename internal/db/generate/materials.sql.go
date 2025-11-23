@@ -58,7 +58,7 @@ func (q *Queries) DeleteMaterial(ctx context.Context, materialID int64) error {
 }
 
 const getAllMaterials = `-- name: GetAllMaterials :many
-SELECT 
+SELECT
     m.material_id,
     m.unit_id,
     m.description,
@@ -68,13 +68,14 @@ SELECT
     pm.quantity_text,
     p.product_id,
     p.name AS product_name
-FROM 
+FROM
     materials m
     INNER JOIN unit_types ut ON m.unit_id = ut.unit_id
-    INNER JOIN material_names mn ON m.material_id = mn.material_id AND mn.is_primary = TRUE
+    INNER JOIN material_names mn ON m.material_id = mn.material_id
+    AND mn.is_primary = TRUE
     LEFT JOIN product_materials pm ON m.material_id = pm.material_id
     LEFT JOIN products p ON pm.product_id = p.product_id
-ORDER BY 
+ORDER BY
     m.material_id
 `
 
