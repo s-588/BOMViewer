@@ -48,7 +48,7 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("POST /materials/{id}", s.handler.MaterialUpdateHandler)                      // update material, return updated material
 	s.mux.HandleFunc("GET /materials/{id}/products", s.handler.MaterialProductListHandler)         // return list of products that use this material
 	s.mux.HandleFunc("GET /materials/{id}/files", s.handler.MaterialFileListHandler)               // return list of pinned files
-	s.mux.HandleFunc("POST /materials/{id}/files", s.handler.MaterialFileCreateHandler)            // attach new file
+	s.mux.HandleFunc("POST /materials/{id}/upload-file", s.handler.MaterialFileUploadHandler)      // attach new file
 	s.mux.HandleFunc("DELETE /materials/{id}/files/{fileID}", s.handler.MaterialFileDeleteHandler) // delete file
 	s.mux.HandleFunc("DELETE /materials/{id}", s.handler.MaterialDeleteHandler)                    // delete material
 	s.mux.HandleFunc("GET /materials/{id}/edit", s.handler.MaterialEditHandler)                    // return form for editing material
@@ -61,14 +61,19 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("POST /products/{id}", s.handler.ProductNewHandler)                         // update product, return updated product
 	s.mux.HandleFunc("GET /products/{id}/materials", s.handler.ProductMaterialListHandler)       // return list of materials that used in this product
 	s.mux.HandleFunc("GET /products/{id}/files", s.handler.ProductFilesListHandler)              // return list of pinned files
-	s.mux.HandleFunc("POST /products/{id}/files", s.handler.ProductFileCreateHandler)            // attach new file
+	s.mux.HandleFunc("POST /products/{id}/upload-file", s.handler.ProductCreateHandler)          // attach new file
 	s.mux.HandleFunc("DELETE /products/{id}/files/{fileID}", s.handler.ProductFileDeleteHandler) // delete file
 	s.mux.HandleFunc("DELETE /products/{id}", s.handler.ProductDeleteHandler)                    // delete material
 	s.mux.HandleFunc("GET /products/{id}/edit", s.handler.ProductEditHandler)                    // return form for editing product
 	s.mux.HandleFunc("GET /products/new", s.handler.ProductCreateHandler)                        // return form for creating new product
 
-	s.mux.HandleFunc("GET /files/preview/{id}", s.handler.FilePreview) // return preview form for file based on its type
-	s.mux.HandleFunc("GET /files/{id}", s.handler.FileDownload)        // download file
+	s.mux.HandleFunc("GET /files/{id}", s.handler.FileDownload)
+	s.mux.HandleFunc("GET /files/preview/{id}", s.handler.FilePreview)
+	// In http.go setupPaths()
+	s.mux.HandleFunc("POST /materials/{id}/set-profile-picture/{fileID}", s.handler.SetMaterialProfilePicture)
+	s.mux.HandleFunc("POST /products/{id}/set-profile-picture/{fileID}", s.handler.SetProductProfilePicture)
+	s.mux.HandleFunc("POST /materials/{id}/remove-profile-picture", s.handler.RemoveMaterialProfilePicture)
+	s.mux.HandleFunc("POST /products/{id}/remove-profile-picture", s.handler.RemoveProductProfilePicture)
 }
 
 func (s *Server) stop(w http.ResponseWriter, r *http.Request) {

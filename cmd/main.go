@@ -14,7 +14,10 @@ const port = ":8080"
 
 func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	repo, err := db.NewRepository(ctx, "santex.db")
 	if err != nil {
 		slog.Info("error creating repository:", "error", err)
@@ -22,7 +25,6 @@ func main() {
 	}
 	slog.Info("database connected")
 	defer repo.Close()
-	defer cancel()
 
 	go func() {
 		slog.Info("starting server at " + port)
@@ -33,6 +35,7 @@ func main() {
 		}
 		slog.Info("server started")
 	}()
+	time.Sleep(100 * time.Millisecond)
 
 	slog.Info("opening browser at http://localhost:" + port + "/")
 	err = exec.Command("cmd", "/C", "start", "http://localhost"+port+"/welcome").Run()
@@ -41,6 +44,6 @@ func main() {
 	}
 
 	<-ctx.Done()
-	slog.Info("stopping the app")
+	slog.Info("received shutdown signal, stopping the app")
 
 }

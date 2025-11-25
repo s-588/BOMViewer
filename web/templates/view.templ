@@ -5,143 +5,168 @@ import (
 	"github.com/s-588/BOMViewer/internal/models"
 )
 
-templ MaterialView(material models.Material, files []models.File) {
+// In your material_view.templ
+templ MaterialView(material models.Material, files []models.File, profilePicture *models.File) {
 	<div class="container my-4">
-		<h2 class="mb-3">{ material.PrimaryName }</h2>
-		<!-- Description -->
-		<div class="mb-4">
-			<h5>Описание</h5>
-			<p class="text-muted">{ material.Description }</p>
-		</div>
-		<!-- Pinned Files -->
-		<div class="mb-4">
-			<h5>Закреплённые файлы</h5>
-			<div class="row">
-				for _, file := range files {
-					<div class="col-md-3 mb-3">
-						<div class="card shadow-sm">
-							<img src={ fmt.Sprintf("/files/preview/%d", file.ID) } class="card-img-top" alt={ file.Name }/>
-							<div class="card-body p-2 text-center">
-								<a href={ fmt.Sprintf("/files/download/%d", file.ID) } class="btn btn-sm btn-outline-primary w-100">
-									Скачать
-								</a>
-							</div>
-						</div>
+		<div class="row">
+			<!-- Main content -->
+			<div class="col-md-8">
+				<h2 class="mb-3">{ material.PrimaryName }</h2>
+				
+				<!-- Description -->
+				<div class="mb-4">
+					<h5>Описание</h5>
+					<p class="text-muted">{ material.Description }</p>
+				</div>
+				
+				<!-- File Manager -->
+				@FileManager(material.ID, "materials", files)
+				
+				<!-- Other Names -->
+				if len(material.Names) > 1 {
+					<div class="mb-4">
+						<h5>Другие названия</h5>
+						<ul class="list-group">
+							for _, name := range material.Names {
+								if name != material.PrimaryName {
+									<li class="list-group-item">{ name }</li>
+								}
+							}
+						</ul>
 					</div>
 				}
-			</div>
-		</div>
-		<!-- Other Names -->
-		if len(material.Names) > 1 {
-			<div class="mb-4">
-				<h5>Другие названия</h5>
-				<ul class="list-group">
-					for _, name := range material.Names {
-						if name != material.PrimaryName {
-							<li class="list-group-item">{ name }</li>
-						}
+				
+				<!-- Products Using This Material -->
+				<div class="mb-4">
+					<h5>Используется в продуктах</h5>
+					if len(material.Products) == 0 {
+						<p class="text-muted">Нет связанных продуктов</p>
+					} else {
+						<table class="table table-striped align-middle">
+							<thead class="table-light">
+								<tr>
+									<th>Продукт</th>
+									<th>Количество</th>
+									<th>Действия</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, p := range material.Products {
+									<tr>
+										<td>{ p.Name }</td>
+										<td>{ fmt.Sprintf("%s %s",p.Quantity,material.Unit.Name) }</td>
+										<td>
+											<button
+												class="btn btn-sm btn-outline-secondary"
+												hx-get={ fmt.Sprintf("/products/%d", p.ID) }
+												hx-target="#content"
+												hx-push-url="true"
+											>
+												Открыть
+											</button>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
 					}
-				</ul>
+				</div>
 			</div>
-		}
-		<!-- Products Using This Material -->
-		<div class="mb-4">
-			<h5>Используется в продуктах</h5>
-			if len(material.Products) == 0 {
-				<p class="text-muted">Нет связанных продуктов</p>
-			} else {
-				<table class="table table-striped align-middle">
-					<thead class="table-light">
-						<tr>
-							<th>Продукт</th>
-							<th>Количество</th>
-							<th>Действия</th>
-						</tr>
-					</thead>
-					<tbody>
-						for _, p := range material.Products {
-							<tr>
-								<td>{ p.Name }</td>
-								<td>{ fmt.Sprintf("%s %s",p.Quantity,material.Unit.Name) }</td>
-								<td>
-									<button
-										class="btn btn-sm btn-outline-secondary"
-										hx-get={ fmt.Sprintf("/products/%d", p.ID) }
-										hx-target="#content"
-										hx-push-url="true"
-									>
-										Открыть
-									</button>
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			}
+			
+			<!-- Profile Picture Sidebar -->
+			<div class="col-md-4">
+				<div id="profile-picture-section">
+					@ProfilePicture(material.ID, "materials", profilePicture, files)
+				</div>
+			</div>
 		</div>
 	</div>
+	
+	@SetProfilePictureModal(material.ID, "materials", getImageFiles(files))
 }
 
-templ ProductView(product models.Product, files []models.File) {
+// Helper functions
+func hasImageFiles(files []models.File) bool {
+	for _, file := range files {
+		if file.FileType == "image" {
+			return true
+		}
+	}
+	return false
+}
+
+func getImageFiles(files []models.File) []models.File {
+	var imageFiles []models.File
+	for _, file := range files {
+		if file.FileType == "image" {
+			imageFiles = append(imageFiles, file)
+		}
+	}
+	return imageFiles
+}
+
+// In your product_view.templ
+templ ProductView(product models.Product, files []models.File, profilePicture *models.File) {
 	<div class="container my-4">
-		<h2 class="mb-3">{ product.Name }</h2>
-		<!-- Description -->
-		<div class="mb-4">
-			<h5>Описание</h5>
-			<p class="text-muted">{ product.Description }</p>
-		</div>
-		<!-- Pinned Files -->
-		<div class="mb-4">
-			<h5>Закреплённые файлы</h5>
-			<div class="row">
-				for _, file := range files {
-					<div class="col-md-3 mb-3">
-						<div class="card shadow-sm">
-							<img src={ fmt.Sprintf("/files/preview/%d", file.ID) } class="card-img-top" alt={ file.Name }/>
-							<div class="card-body p-2 text-center">
-								<a href={ fmt.Sprintf("/files/download/%d", file.ID) } class="btn btn-sm btn-outline-primary w-100">
-									Скачать
-								</a>
-							</div>
-						</div>
-					</div>
-				}
+		<div class="row">
+			<!-- Main content -->
+			<div class="col-md-8">
+				<h2 class="mb-3">{ product.Name }</h2>
+				
+				<!-- Description -->
+				<div class="mb-4">
+					<h5>Описание</h5>
+					<p class="text-muted">{ product.Description }</p>
+				</div>
+				
+				<!-- File Manager -->
+				@FileManager(product.ID, "products", files)
+				
+				<!-- Materials List -->
+				<div>
+					<h5>Материалы</h5>
+					if len(product.Materials) == 0 {
+						<p class="text-muted">Нет материалов</p>
+					} else {
+						<table class="table table-striped align-middle">
+							<thead class="table-light">
+								<tr>
+									<th>Материал</th>
+									<th>Количество</th>
+									<th>Действия</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, m := range product.Materials {
+									<tr>
+										<td>{ m.PrimaryName }</td>
+										<td>{ fmt.Sprintf("%s %s",m.Quantity,m.Unit.Name) }</td>
+										<td>
+											<button
+												class="btn btn-sm btn-outline-secondary"
+												hx-get={ fmt.Sprintf("/materials/%d", m.ID) }
+												hx-target="#content"
+												hx-push-url="true"
+											>
+												Открыть
+											</button>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					}
+				</div>
+			</div>
+			
+			<!-- Profile Picture Sidebar -->
+			<div class="col-md-4">
+				<div id="profile-picture-section">
+					@ProfilePicture(product.ID, "products", profilePicture, files)
+				</div>
 			</div>
 		</div>
-		<!-- Materials List -->
-		<div>
-			<h5>Материалы</h5>
-			if len(product.Materials) == 0 {
-				<p class="text-muted">Нет материалов</p>
-			} else {
-				<table class="table table-striped align-middle">
-					<thead class="table-light">
-						<tr>
-							<th>Материал</th>
-							<th>Количество</th>
-							<th>Действия</th>
-						</tr>
-					</thead>
-					<tbody>
-						for _, m := range product.Materials {
-							<tr>
-								<td>{ m.PrimaryName }</td>
-								<td>{ fmt.Sprintf("%s %s",m.Quantity,m.Unit.Name) }</td>
-								<td>
-									<button
-										class="btn btn-sm btn-outline-secondary"
-										hx-get={ fmt.Sprintf("/materials/%d", m.ID) }
-										hx-target="#content"
-										hx-push-url="true"
-									>
-										Открыть
-									</button>
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			}
-		</div>
 	</div>
+	
+	@SetProfilePictureModal(product.ID, "products", getImageFiles(files))
 }

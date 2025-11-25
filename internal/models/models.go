@@ -26,7 +26,9 @@ type Product struct {
 }
 
 type File struct {
-	ID   int64
-	Name string
-	Path string
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	MimeType string `json:"mime_type"`
+	FileType string `json:"file_type"` // "image" or "document"
 }

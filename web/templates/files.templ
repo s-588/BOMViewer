@@ -1,0 +1,244 @@
+// files.templ - Clean version with proper existence checks
+package templates
+
+import (
+	"fmt"
+	
+	"github.com/s-588/BOMViewer/internal/models"
+)
+
+templ FileManager(entityID int64, entityType string, files []models.File) {
+	<div class="file-manager">
+		<!-- File Upload Section - Updated for all file types -->
+		<div class="mb-4">
+			<h5>Загрузить файл</h5>
+			<form 
+				hx-post={ fmt.Sprintf("/%s/%d/upload-file", entityType, entityID) } 
+				hx-encoding="multipart/form-data"
+				hx-target="#file-list-container"
+				class="mb-3"
+			>
+				<div class="input-group">
+					<input type="file" name="file" class="form-control" required>
+					<button type="submit" class="btn btn-primary">Загрузить</button>
+				</div>
+				<small class="form-text text-muted">Поддерживаемые форматы: изображения, PDF, DOC, DOCX и другие (макс. 10MB)</small>
+			</form>
+		</div>
+
+		<!-- Pinned Files Container - This is what HTMX will target -->
+		<div id="file-list-container">
+			@FileList(entityID, entityType, files)
+		</div>
+	</div>
+}
+
+templ FileList(entityID int64, entityType string, files []models.File) {
+	<!-- Pinned Files - Only show if files exist -->
+	if len(files) > 0 && hasNonProfilePictureFiles(files) {
+		<div class="mb-4">
+			<h5>Закреплённые файлы</h5>
+			<div id="file-list" class="row">
+				for _, file := range files {
+					if file.FileType != "profile-picture" && file.ID > 0 && file.Name != "" {
+						<div class="col-md-3 mb-3">
+							<div class="card shadow-sm file-card">
+								if file.FileType == "image" && file.ID > 0 {
+									<img 
+										src={ fmt.Sprintf("/files/preview/%d", file.ID) } 
+										class="card-img-top" 
+										alt={ file.Name }
+										style="height: 200px; object-fit: cover; cursor: pointer;"
+										data-image-view="true"
+										data-image-src={ fmt.Sprintf("/files/preview/%d", file.ID) }
+										data-image-name={ file.Name }
+									>
+								} else if file.ID > 0 && file.Name != "" {
+									<div class="card-body text-center py-5">
+										<!-- Show appropriate icon based on file type -->
+										if isDocument(file.MimeType) {
+											<i class="fas fa-file-pdf fa-3x text-danger"></i>
+										} else if isWordDocument(file.MimeType) {
+											<i class="fas fa-file-word fa-3x text-primary"></i>
+										} else {
+											<i class="fas fa-file fa-3x text-muted"></i>
+										}
+										<p class="mt-2 mb-0 text-truncate">{ file.Name }</p>
+										<small class="text-muted">{ getFileTypeDisplay(file.MimeType) }</small>
+									</div>
+								}
+								if file.ID > 0 {
+									<div class="card-body p-2 text-center">
+										<a 
+											href={ fmt.Sprintf("/files/%d", file.ID) } 
+											class="btn btn-sm btn-outline-primary w-100 mb-1"
+											target="_blank"
+										>
+											Скачать
+										</a>
+										<button 
+											class="btn btn-sm btn-outline-danger w-100"
+											hx-delete={ fmt.Sprintf("/%s/%d/files/%d", entityType, entityID, file.ID) }
+											hx-target="#file-list-container"
+											hx-confirm="Удалить файл?"
+										>
+											Удалить
+										</button>
+									</div>
+								}
+							</div>
+						</div>
+					}
+				}
+			</div>
+		</div>
+	} else {
+		<!-- Show empty state if no files -->
+		<div class="mb-4">
+			<h5>Закреплённые файлы</h5>
+			<div class="text-center py-4">
+				<i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+				<p class="text-muted">Нет загруженных файлов</p>
+			</div>
+		</div>
+	}
+}
+
+templ ProfilePicture(entityID int64, entityType string, profilePicture *models.File, availableImages []models.File) {
+	<div class="profile-picture-section">
+		if profilePicture != nil && profilePicture.ID > 0 && profilePicture.Name != "" {
+			<div class="text-center mb-4">
+				<h5>Основное изображение</h5>
+				<div class="position-relative d-inline-block">
+					<img 
+						src={ fmt.Sprintf("/files/preview/%d", profilePicture.ID) } 
+						class="img-fluid rounded shadow profile-image-main"
+						alt="Основное изображение"
+						style="max-height: 300px; cursor: pointer;"
+						data-image-view="true"
+						data-image-src={ fmt.Sprintf("/files/preview/%d", profilePicture.ID) }
+						data-image-name={ profilePicture.Name }
+					>
+					<div class="mt-3">
+						<button 
+							class="btn btn-sm btn-outline-danger me-2"
+							hx-post={ fmt.Sprintf("/%s/%d/remove-profile-picture", entityType, entityID) }
+							hx-target="#profile-picture-section"
+							hx-confirm="Удалить основное изображение?"
+						>
+							<i class="fas fa-times"></i> Удалить
+						</button>
+						<small class="text-muted d-block mt-1">{ profilePicture.Name }</small>
+					</div>
+				</div>
+			</div>
+		} else if len(availableImages) > 0 && hasValidImages(availableImages) {
+			<div class="text-center mb-4">
+				<h5>Основное изображение</h5>
+				<p class="text-muted">Не установлено</p>
+				<button 
+					class="btn btn-outline-primary btn-sm"
+					data-set-profile-picture="true"
+				>
+					<i class="fas fa-image"></i> Установить основное изображение
+				</button>
+			</div>
+		} else {
+			<div class="text-center mb-4">
+				<h5>Основное изображение</h5>
+				<p class="text-muted">Загрузите изображения, чтобы установить основное</p>
+			</div>
+		}
+	</div>
+}
+
+templ SetProfilePictureModal(entityID int64, entityType string, imageFiles []models.File) {
+	<div class="modal fade" id="setProfilePictureModal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Выберите основное изображение</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					if len(imageFiles) > 0 && hasValidImages(imageFiles) {
+						<div class="row">
+							for _, file := range imageFiles {
+								if file.ID > 0 && file.Name != "" {
+									<div class="col-md-4 mb-3">
+										<div class="card h-100">
+											<img 
+												src={ fmt.Sprintf("/files/preview/%d", file.ID) } 
+												class="card-img-top" 
+												alt={ file.Name }
+												style="height: 150px; object-fit: cover; cursor: pointer;"
+												data-profile-picture-choice="true"
+												data-entity-id={ fmt.Sprintf("%d", entityID) }
+												data-entity-type={ entityType }
+												data-file-id={ fmt.Sprintf("%d", file.ID) }
+											>
+											<div class="card-body text-center">
+												<small class="text-muted">{ file.Name }</small>
+											</div>
+										</div>
+									</div>
+								}
+							}
+						</div>
+					} else {
+						<p class="text-muted text-center">Нет доступных изображений</p>
+					}
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+// Helper functions
+func hasNonProfilePictureFiles(files []models.File) bool {
+	for _, file := range files {
+		if file.FileType != "profile-picture" && file.ID > 0 && file.Name != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasValidImages(files []models.File) bool {
+	for _, file := range files {
+		if file.ID > 0 && file.Name != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// New helper functions for file type detection
+func isDocument(mimeType string) bool {
+	return mimeType == "application/pdf" || 
+	       mimeType == "application/msword" || 
+	       mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+}
+
+func isWordDocument(mimeType string) bool {
+	return mimeType == "application/msword" || 
+	       mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+}
+
+func getFileTypeDisplay(mimeType string) string {
+	switch mimeType {
+	case "application/pdf":
+		return "PDF документ"
+	case "application/msword":
+		return "Word документ"
+	case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+		return "Word документ"
+	case "image/jpeg", "image/png", "image/gif", "image/webp":
+		return "Изображение"
+	default:
+		return "Файл"
+	}
+}

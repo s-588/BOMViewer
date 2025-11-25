@@ -36,7 +36,7 @@ func NewRepository(ctx context.Context, connStr string) (*Repository, error) {
 	return &Repository{
 		queries: sqlite.New(conn),
 		db:      conn,
-	}, err
+	}, conn.Ping()
 }
 
 // Close function close database connection and assumed to call it before app stop.
@@ -317,9 +317,11 @@ func (r *Repository) GetMaterialFiles(ctx context.Context, id int64) ([]models.F
 	files := make([]models.File, 0, len(fileRows))
 	for _, row := range fileRows {
 		file := models.File{
-			ID:   row.FileID,
-			Name: row.Name,
-			Path: row.Path.String,
+			ID:       row.FileID,
+			Name:     row.Name,
+			Path:     row.Path,
+			MimeType: row.MimeType,
+			FileType: row.FileType.String,
 		}
 		files = append(files, file)
 	}
@@ -335,14 +337,32 @@ func (r *Repository) InsertMaterialFile(ctx context.Context, materialID, fileID 
 }
 
 func (r *Repository) InsertFile(ctx context.Context, file models.File) (int64, error) {
+	fmt.Println(file)
 	fileRow, err := r.queries.InsertFile(ctx, sqlite.InsertFileParams{
-		Name: file.Name,
-		Path: sql.NullString{String: file.Path, Valid: true},
+		Name:     file.Name,
+		Path:     file.Path,
+		MimeType: file.MimeType,
+		FileType: sql.NullString{String: file.FileType, Valid: true},
 	})
 	if err != nil {
 		return 0, parseError(err)
 	}
 	return fileRow.FileID, nil
+}
+
+func (r *Repository) GetFileByID(ctx context.Context, id int64) (models.File, error) {
+	fileRow, err := r.queries.GetFileByID(ctx, id)
+	if err != nil {
+		return models.File{}, parseError(err)
+	}
+
+	return models.File{
+		ID:       fileRow.FileID,
+		Name:     fileRow.Name,
+		Path:     fileRow.Path,
+		MimeType: fileRow.MimeType,
+		FileType: fileRow.FileType.String,
+	}, nil
 }
 
 func (r *Repository) DeleteFile(ctx context.Context, id int64) error {
@@ -503,9 +523,11 @@ func (r *Repository) GetProductFiles(ctx context.Context, id int64) ([]models.Fi
 	files := make([]models.File, 0, len(fileRows))
 	for _, row := range fileRows {
 		files = append(files, models.File{
-			ID:   row.FileID,
-			Name: row.Name,
-			Path: row.Path.String,
+			ID:       row.FileID,
+			Name:     row.Name,
+			Path:     row.Path,
+			MimeType: row.MimeType,
+			FileType: row.FileType.String,
 		})
 	}
 	return files, nil
@@ -519,8 +541,11 @@ func (r *Repository) InsertProductFile(ctx context.Context, fileID, productID in
 	return parseError(err)
 }
 
-func (r *Repository) DeleteProductFile(ctx context.Context, id int64) error {
-	err := r.queries.DeleteProductFile(ctx, id)
+func (r *Repository) DeleteProductFile(ctx context.Context, productID, fileID int64) error {
+	err := r.queries.DeleteProductFile(ctx, sqlite.DeleteProductFileParams{
+		ProductID: sql.NullInt64{Int64: productID, Valid: true},
+		FileID:    sql.NullInt64{Int64: fileID, Valid: true},
+	})
 	return parseError(err)
 }
 
@@ -727,4 +752,109 @@ func (r *Repository) SearchProducts(ctx context.Context, q string, limit int64) 
 	}
 
 	return products, nil
+}
+
+func (r *Repository) GetMaterialProfilePicture(ctx context.Context, id int64) (models.File, error) {
+	row, err := r.queries.GetMaterialProfilePicture(ctx, sql.NullInt64{Int64: id, Valid: true})
+	return models.File{
+		ID:       row.FileID,
+		Name:     row.Name,
+		Path:     row.Path,
+		MimeType: row.MimeType,
+		FileType: row.FileType.String,
+	}, parseError(err)
+}
+
+func (r *Repository) GetProductProfilePicture(ctx context.Context, id int64) (models.File, error) {
+	row, err := r.queries.GetProductProfilePicture(ctx, sql.NullInt64{Int64: id, Valid: true})
+	return models.File{
+		ID:       row.FileID,
+		Name:     row.Name,
+		Path:     row.Path,
+		MimeType: row.MimeType,
+		FileType: row.FileType.String,
+	}, parseError(err)
+}
+
+func (r *Repository) DeleteMaterialFile(ctx context.Context, materialID, fileID int64) error {
+	return parseError(r.queries.DeleteMaterialFile(ctx, sqlite.DeleteMaterialFileParams{
+		FileID:     sql.NullInt64{Int64: fileID, Valid: true},
+		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
+	}))
+}
+
+func (r *Repository) SetMaterialProfilePicture(ctx context.Context, materialID, fileID int64) error {
+	err := r.queries.SetFileToProfilePicture(ctx, fileID)
+	if err != nil {
+		return parseError(err)
+	}
+	_, err = r.queries.InsertMaterialFile(ctx, sqlite.InsertMaterialFileParams{
+		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
+		FileID:     sql.NullInt64{Int64: fileID, Valid: true},
+	})
+	if err != nil {
+		return parseError(err)
+	}
+	return nil
+}
+
+func (r *Repository) SetProductProfilePicture(ctx context.Context, productID, fileID int64) error {
+	err := r.queries.SetFileToProfilePicture(ctx, fileID)
+	if err != nil {
+		return parseError(err)
+	}
+	_, err = r.queries.InsertProductFile(ctx, sqlite.InsertProductFileParams{
+		ProductID: sql.NullInt64{Int64: productID, Valid: true},
+		FileID:    sql.NullInt64{Int64: fileID, Valid: true},
+	})
+	if err != nil {
+		return parseError(err)
+	}
+	return nil
+}
+func (r *Repository) UnsetMaterialProfilePicture(ctx context.Context, materialID int64) error {
+	err := r.queries.UnsetMaterialProfilePicture(ctx, sql.NullInt64{Int64: materialID, Valid: true})
+	if err != nil {
+		return parseError(err)
+	}
+	return parseError(err)
+}
+func (r *Repository) UnsetProductProfilePicture(ctx context.Context, productID int64) error {
+	return parseError(r.queries.UnsetProductProfilePicture(ctx, sql.NullInt64{Int64: productID, Valid: true}))
+}
+func (r *Repository) GetAllMaterialImages(ctx context.Context, materialID int64) ([]models.File, error) {
+	imgRows, err := r.queries.GetAllMaterialImages(ctx, sql.NullInt64{Int64: materialID, Valid: true})
+	if err != nil {
+		return nil, parseError(err)
+	}
+
+	files := make([]models.File, 0, len(imgRows))
+	for _, file := range imgRows {
+		files = append(files, models.File{
+			ID:       file.FileID,
+			Name:     file.Name,
+			Path:     file.Path,
+			MimeType: file.MimeType,
+			FileType: file.FileType.String,
+		})
+	}
+	return files, nil
+}
+func (r *Repository) GetAllProductImages(ctx context.Context, productID int64) ([]models.File, error) {
+	imgRows, err := r.queries.GetAllProductImages(ctx, sql.NullInt64{Int64: productID, Valid: true})
+	if err != nil {
+		return nil, parseError(err)
+	}
+
+	files := make([]models.File, 0, len(imgRows))
+	for _, file := range imgRows {
+		files = append(files, models.File{
+			ID:       file.FileID,
+			Name:     file.Name,
+			Path:     file.Path,
+			MimeType: file.MimeType,
+			FileType: file.FileType.String,
+		})
+	}
+	return files, nil
 }

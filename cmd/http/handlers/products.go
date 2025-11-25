@@ -178,7 +178,11 @@ func (h *Handler) ProductViewHandler(w http.ResponseWriter, r *http.Request) {
 		templates.InternalError("ошибка получения файлов продукта: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	templates.ProductView(product, files).Render(r.Context(), w)
+	profilePicture, err := h.db.GetProductProfilePicture(r.Context(), id)
+	if err != nil {
+		// handle error
+	}
+	templates.ProductView(product, files, &profilePicture).Render(r.Context(), w)
 }
 
 func (h *Handler) ProductUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +249,7 @@ func (h *Handler) ProductFilesListHandler(w http.ResponseWriter, r *http.Request
 		templates.InternalError("ошибка получения файлов продукта: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	templates.FileList(files).Render(r.Context(), w)
+	templates.FileList(id, "product", files).Render(r.Context(), w)
 }
 
 func (h *Handler) ProductFileCreateHandler(w http.ResponseWriter, r *http.Request) {
@@ -338,4 +342,53 @@ func (h *Handler) ProductMaterialListHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	templates.MainMaterialPage(materials, templates.MaterialTableArgs{}).Render(r.Context(), w)
+}
+
+// In products.go - similar handler for products
+func (h *Handler) SetProductProfilePicture(w http.ResponseWriter, r *http.Request) {
+	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse product id", "error", err)
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	fileID, err := strconv.ParseInt(r.PathValue("fileID"), 10, 64)
+	if err != nil {
+		slog.Error("parse file id", "error", err)
+		http.Error(w, "Invalid file ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.UnsetProductProfilePicture(r.Context(), productID)
+	if err != nil {
+		slog.Warn("cannot unset product profile picture", "error", err, "where", "SetProductProfilePicture")
+	}
+
+	err = h.db.SetProductProfilePicture(r.Context(), productID, fileID)
+	if err != nil {
+		slog.Error("set product profile picture", "error", err)
+		http.Error(w, "Error setting profile picture", http.StatusInternalServerError)
+		return
+	}
+
+	h.ProductViewHandler(w, r)
+}
+
+func (h *Handler) RemoveProductProfilePicture(w http.ResponseWriter, r *http.Request) {
+	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse product id", "error", err)
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.UnsetProductProfilePicture(r.Context(), productID)
+	if err != nil {
+		slog.Error("remove product profile picture", "error", err)
+		http.Error(w, "Error removing profile picture", http.StatusInternalServerError)
+		return
+	}
+
+	h.ProductViewHandler(w, r)
 }

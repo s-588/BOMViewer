@@ -46,7 +46,9 @@ CREATE TABLE
   files (
     file_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name varchar(50) NOT NULL,
-    PATH varchar(255)
+    path varchar(255) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_type VARCHAR(20) DEFAULT 'document'
   );
 
 CREATE TABLE

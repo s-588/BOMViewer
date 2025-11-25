@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/s-588/BOMViewer/internal/helpers"
 	"github.com/s-588/BOMViewer/internal/models"
@@ -202,23 +203,22 @@ func validateNames(names []string) error {
 func (h *Handler) MaterialViewHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialViewHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
-		return
+		// handle error
 	}
 	material, err := h.db.GetMaterialByID(r.Context(), id)
 	if err != nil {
-		slog.Error("get material by id", "error", err, "where", "MaterialViewHandler")
-		templates.InternalError("ошибка получения материала: "+err.Error()).Render(r.Context(), w)
-		return
+		// handle error
 	}
 	files, err := h.db.GetMaterialFiles(r.Context(), id)
 	if err != nil {
-		slog.Error("get material files", "error", err, "where", "MaterialViewHandler")
-		templates.InternalError("ошибка получения файлов материала: "+err.Error()).Render(r.Context(), w)
-		return
+		// handle error
 	}
-	templates.MaterialView(material, files).Render(r.Context(), w)
+	profilePicture, err := h.db.GetMaterialProfilePicture(r.Context(), id)
+	if err != nil {
+		// handle error
+	}
+
+	templates.MaterialView(material, files, &profilePicture).Render(r.Context(), w)
 }
 
 func (h *Handler) MaterialUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -272,33 +272,123 @@ func (h *Handler) MaterialFileListHandler(w http.ResponseWriter, r *http.Request
 		templates.InternalError("ошибка получения файлов материала: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	templates.FileList(files).Render(r.Context(), w)
+	templates.FileList(id, "material", files).Render(r.Context(), w)
 }
 
-func (h *Handler) MaterialFileCreateHandler(w http.ResponseWriter, r *http.Request) {
-	materialID, err := strconv.ParseInt(r.PathValue("material-id"), 10, 64)
+func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Request) {
+	slog.Info("MaterialFileUploadHandler called", "method", r.Method, "path", r.URL.Path)
+
+	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialFileCreateHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		slog.Error("parse material id", "error", err, "where", "MaterialFileUploadHandler")
+		templates.InternalError("ошибка обработки идентификатора материала").Render(r.Context(), w)
 		return
 	}
-	fileID, err := strconv.ParseInt(r.Context().Value("file-id").(string), 10, 64)
+	slog.Info("materialID", "id", materialID)
+
+	// Handle file upload - now accepts any file type
+	uploadedFile, err := h.fileUpload.HandleFileUpload(r, "file")
 	if err != nil {
-		slog.Error("parse file id", "error", err, "where", "MaterialFileCreateHandler")
-		templates.InternalError("ошибка обработки идентификатора файла: "+err.Error()).Render(r.Context(), w)
+		slog.Error("file upload error", "error", err, "where", "MaterialFileUploadHandler")
+		templates.InternalError("ошибка загрузки файла: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	h.db.InsertMaterialFile(r.Context(), materialID, fileID)
+	slog.Info("file uploaded", "name", uploadedFile.Name, "path", uploadedFile.Path, "mime", uploadedFile.MimeType)
+
+	// Determine file type based on MIME type
+	fileType := "document"
+	if strings.HasPrefix(uploadedFile.MimeType, "image/") {
+		fileType = "image"
+	}
+	slog.Info("file type determined", "type", fileType)
+
+	// Save file record to database
+	fileID, err := h.db.InsertFile(r.Context(), models.File{
+		Name:     uploadedFile.Name,
+		Path:     uploadedFile.Path,
+		MimeType: uploadedFile.MimeType,
+		FileType: fileType,
+	})
+	if err != nil {
+		// Clean up uploaded file
+		h.fileUpload.DeleteFile(uploadedFile.Path)
+		slog.Error("insert file error", "error", err, "where", "MaterialFileUploadHandler")
+		templates.InternalError("ошибка сохранения файла в базе данных").Render(r.Context(), w)
+		return
+	}
+	slog.Info("file saved to database", "fileID", fileID)
+
+	// Link file to material
+	err = h.db.InsertMaterialFile(r.Context(), materialID, fileID)
+	if err != nil {
+		// Clean up uploaded file and database record
+		h.fileUpload.DeleteFile(uploadedFile.Path)
+		h.db.DeleteFile(r.Context(), fileID)
+		slog.Error("link file to material error", "error", err, "where", "MaterialFileUploadHandler")
+		templates.InternalError("ошибка привязки файла к материалу").Render(r.Context(), w)
+		return
+	}
+	slog.Info("file linked to material", "materialID", materialID, "fileID", fileID)
+
+	// Get updated file list and return the files section
+	files, err := h.db.GetMaterialFiles(r.Context(), materialID)
+	if err != nil {
+		slog.Error("get material files error", "error", err, "where", "MaterialFileUploadHandler")
+		templates.InternalError("ошибка получения списка файлов").Render(r.Context(), w)
+		return
+	}
+	slog.Info("retrieved material files", "count", len(files))
+
+	// Return ONLY the FileList component
+	slog.Info("rendering FileList template")
+	templates.FileList(materialID, "materials", files).Render(r.Context(), w)
+	slog.Info("FileList template rendered successfully")
 }
 
 func (h *Handler) MaterialFileDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	fileID, err := strconv.ParseInt(r.PathValue("file-id"), 10, 64)
+	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse file id", "error", err, "where", "MaterialFileDeleteHandler")
-		templates.InternalError("ошибка обработки идентификатора файла: "+err.Error()).Render(r.Context(), w)
+		slog.Error("parse material id", "error", err, "where", "MaterialFileDeleteHandler")
+		templates.InternalError("ошибка обработки идентификатора материала").Render(r.Context(), w)
 		return
 	}
-	h.db.DeleteFile(r.Context(), fileID)
+
+	fileID, err := strconv.ParseInt(r.PathValue("fileID"), 10, 64)
+	if err != nil {
+		slog.Error("parse file id", "error", err, "where", "MaterialFileDeleteHandler")
+		templates.InternalError("ошибка обработки идентификатора файла").Render(r.Context(), w)
+		return
+	}
+
+	// Get file info before deletion
+	file, err := h.db.GetFileByID(r.Context(), fileID)
+	if err != nil {
+		slog.Error("get file error", "error", err, "where", "MaterialFileDeleteHandler")
+		// Continue with deletion anyway
+	} else {
+		// Delete physical file if we found it
+		if err := h.fileUpload.DeleteFile(file.Path); err != nil {
+			slog.Error("delete physical file error", "error", err, "where", "MaterialFileDeleteHandler")
+		}
+	}
+
+	// Delete from database - this should handle both files_materials and files table due to CASCADE
+	err = h.db.DeleteFile(r.Context(), fileID)
+	if err != nil {
+		slog.Error("delete file error", "error", err, "where", "MaterialFileDeleteHandler")
+		templates.InternalError("ошибка удаления файла").Render(r.Context(), w)
+		return
+	}
+
+	// Return updated file list - IMPORTANT: Return FileList template, not the full page
+	files, err := h.db.GetMaterialFiles(r.Context(), materialID)
+	if err != nil {
+		slog.Error("get material files error", "error", err, "where", "MaterialFileDeleteHandler")
+		templates.InternalError("ошибка получения списка файлов").Render(r.Context(), w)
+		return
+	}
+
+	templates.FileList(materialID, "materials", files).Render(r.Context(), w)
 }
 
 func (h *Handler) MaterialDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -397,4 +487,53 @@ func (h *Handler) MaterialsPicker(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	templates.MaterialTableForProduct(rows, templates.MaterialTableArgs{}).Render(r.Context(), w)
+}
+
+// In materials.go
+func (h *Handler) SetMaterialProfilePicture(w http.ResponseWriter, r *http.Request) {
+	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse material id", "error", err)
+		http.Error(w, "Invalid material ID", http.StatusBadRequest)
+		return
+	}
+
+	fileID, err := strconv.ParseInt(r.PathValue("fileID"), 10, 64)
+	if err != nil {
+		slog.Error("parse file id", "error", err)
+		http.Error(w, "Invalid file ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.UnsetMaterialProfilePicture(r.Context(), materialID)
+	if err != nil {
+		slog.Warn("cannot unset material profile picture", "error", err, "where", "SetMaterialProfilePicture")
+	}
+
+	err = h.db.SetMaterialProfilePicture(r.Context(), materialID, fileID)
+	if err != nil {
+		slog.Error("set material profile picture", "error", err)
+		http.Error(w, "Error setting profile picture", http.StatusInternalServerError)
+		return
+	}
+
+	h.MaterialViewHandler(w, r)
+}
+
+func (h *Handler) RemoveMaterialProfilePicture(w http.ResponseWriter, r *http.Request) {
+	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse material id", "error", err)
+		http.Error(w, "Invalid material ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.UnsetMaterialProfilePicture(r.Context(), materialID)
+	if err != nil {
+		slog.Error("set material profile picture", "error", err)
+		http.Error(w, "Error removing profile picture", http.StatusInternalServerError)
+		return
+	}
+
+	h.MaterialViewHandler(w, r)
 }

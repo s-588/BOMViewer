@@ -21,32 +21,178 @@ func (q *Queries) DeleteFile(ctx context.Context, fileID int64) error {
 	return err
 }
 
-const deleteProductFile = `-- name: DeleteProductFile :exec
-DELETE FROM files
+const deleteMaterialFile = `-- name: DeleteMaterialFile :exec
+DELETE FROM files_materials
 WHERE
     file_id = ?
+    AND material_id = ?
 `
 
-func (q *Queries) DeleteProductFile(ctx context.Context, fileID int64) error {
-	_, err := q.db.ExecContext(ctx, deleteProductFile, fileID)
+type DeleteMaterialFileParams struct {
+	FileID     sql.NullInt64
+	MaterialID sql.NullInt64
+}
+
+func (q *Queries) DeleteMaterialFile(ctx context.Context, arg DeleteMaterialFileParams) error {
+	_, err := q.db.ExecContext(ctx, deleteMaterialFile, arg.FileID, arg.MaterialID)
 	return err
 }
 
-const getMaterialFiles = `-- name: GetMaterialFiles :many
+const deleteProductFile = `-- name: DeleteProductFile :exec
+DELETE FROM files_products
+WHERE
+    file_id = ?
+    AND product_id = ?
+`
+
+type DeleteProductFileParams struct {
+	FileID    sql.NullInt64
+	ProductID sql.NullInt64
+}
+
+func (q *Queries) DeleteProductFile(ctx context.Context, arg DeleteProductFileParams) error {
+	_, err := q.db.ExecContext(ctx, deleteProductFile, arg.FileID, arg.ProductID)
+	return err
+}
+
+const getAllMaterialImages = `-- name: GetAllMaterialImages :many
 SELECT
-    f.file_id, f.name, f.path,
-    fm.material_id AS material_id
+    f.file_id,
+    f.name,
+    f.path,
+    f.mime_type,
+    f.file_type
 FROM
     files f
     INNER JOIN files_materials fm ON f.file_id = fm.file_id
 WHERE
     fm.material_id = ?
+    AND (
+        f.file_type = 'image'
+        OR f.file_type = 'profile-picture'
+    )
+`
+
+func (q *Queries) GetAllMaterialImages(ctx context.Context, materialID sql.NullInt64) ([]File, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMaterialImages, materialID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []File
+	for rows.Next() {
+		var i File
+		if err := rows.Scan(
+			&i.FileID,
+			&i.Name,
+			&i.Path,
+			&i.MimeType,
+			&i.FileType,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllProductImages = `-- name: GetAllProductImages :many
+SELECT
+    f.file_id,
+    f.name,
+    f.path,
+    f.mime_type,
+    f.file_type
+FROM
+    files f
+    INNER JOIN files_products fp ON f.file_id = fp.file_id
+WHERE
+    fp.product_id = ?
+    AND (
+        f.file_type = 'image'
+        OR f.file_type = 'profile-picture'
+    )
+`
+
+func (q *Queries) GetAllProductImages(ctx context.Context, productID sql.NullInt64) ([]File, error) {
+	rows, err := q.db.QueryContext(ctx, getAllProductImages, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []File
+	for rows.Next() {
+		var i File
+		if err := rows.Scan(
+			&i.FileID,
+			&i.Name,
+			&i.Path,
+			&i.MimeType,
+			&i.FileType,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFileByID = `-- name: GetFileByID :one
+SELECT
+    file_id, name, path, mime_type, file_type
+FROM
+    files
+WHERE
+    file_id = ?
+`
+
+func (q *Queries) GetFileByID(ctx context.Context, fileID int64) (File, error) {
+	row := q.db.QueryRowContext(ctx, getFileByID, fileID)
+	var i File
+	err := row.Scan(
+		&i.FileID,
+		&i.Name,
+		&i.Path,
+		&i.MimeType,
+		&i.FileType,
+	)
+	return i, err
+}
+
+const getMaterialFiles = `-- name: GetMaterialFiles :many
+SELECT
+    f.file_id,
+    f.name,
+    f.path,
+    f.mime_type,
+    f.file_type,
+    fm.material_id
+FROM
+    files f
+    INNER JOIN files_materials fm ON f.file_id = fm.file_id
+WHERE
+    fm.material_id = ?
+    AND f.file_type <> 'profile-picture'
 `
 
 type GetMaterialFilesRow struct {
 	FileID     int64
 	Name       string
-	Path       sql.NullString
+	Path       string
+	MimeType   string
+	FileType   sql.NullString
 	MaterialID sql.NullInt64
 }
 
@@ -63,6 +209,8 @@ func (q *Queries) GetMaterialFiles(ctx context.Context, materialID sql.NullInt64
 			&i.FileID,
 			&i.Name,
 			&i.Path,
+			&i.MimeType,
+			&i.FileType,
 			&i.MaterialID,
 		); err != nil {
 			return nil, err
@@ -78,21 +226,63 @@ func (q *Queries) GetMaterialFiles(ctx context.Context, materialID sql.NullInt64
 	return items, nil
 }
 
+const getMaterialProfilePicture = `-- name: GetMaterialProfilePicture :one
+SELECT
+    f.file_id, f.name, f.path, f.mime_type, f.file_type,
+    fm.material_id
+FROM
+    files f
+    INNER JOIN files_materials fm ON f.file_id = fm.file_id
+WHERE
+    f.file_type = 'profile-picture'
+    AND fm.material_id = ?
+`
+
+type GetMaterialProfilePictureRow struct {
+	FileID     int64
+	Name       string
+	Path       string
+	MimeType   string
+	FileType   sql.NullString
+	MaterialID sql.NullInt64
+}
+
+func (q *Queries) GetMaterialProfilePicture(ctx context.Context, materialID sql.NullInt64) (GetMaterialProfilePictureRow, error) {
+	row := q.db.QueryRowContext(ctx, getMaterialProfilePicture, materialID)
+	var i GetMaterialProfilePictureRow
+	err := row.Scan(
+		&i.FileID,
+		&i.Name,
+		&i.Path,
+		&i.MimeType,
+		&i.FileType,
+		&i.MaterialID,
+	)
+	return i, err
+}
+
 const getProductFiles = `-- name: GetProductFiles :many
 SELECT
-    f.file_id, f.name, f.path,
-    fp.product_id AS product_id
+    f.file_id,
+    f.name,
+    f.path,
+    f.mime_type,
+    f.file_type,
+    fp.product_id
 FROM
     files f
     INNER JOIN files_products fp ON f.file_id = fp.file_id
 WHERE
     fp.product_id = ?
+    AND f.file_type <> 'profile-picture'
 `
 
 type GetProductFilesRow struct {
 	FileID    int64
 	Name      string
-	Path      sql.NullString
+	Path      string
+	MimeType  string
+	FileType  sql.NullString
 	ProductID sql.NullInt64
 }
 
@@ -109,6 +299,8 @@ func (q *Queries) GetProductFiles(ctx context.Context, productID sql.NullInt64) 
 			&i.FileID,
 			&i.Name,
 			&i.Path,
+			&i.MimeType,
+			&i.FileType,
 			&i.ProductID,
 		); err != nil {
 			return nil, err
@@ -124,22 +316,70 @@ func (q *Queries) GetProductFiles(ctx context.Context, productID sql.NullInt64) 
 	return items, nil
 }
 
+const getProductProfilePicture = `-- name: GetProductProfilePicture :one
+SELECT
+    f.file_id, f.name, f.path, f.mime_type, f.file_type,
+    fp.product_id
+FROM
+    files f
+    INNER JOIN files_products fp ON f.file_id = fp.file_id
+WHERE
+    f.file_type = 'profile-picture'
+    AND fp.product_id = ?
+`
+
+type GetProductProfilePictureRow struct {
+	FileID    int64
+	Name      string
+	Path      string
+	MimeType  string
+	FileType  sql.NullString
+	ProductID sql.NullInt64
+}
+
+func (q *Queries) GetProductProfilePicture(ctx context.Context, productID sql.NullInt64) (GetProductProfilePictureRow, error) {
+	row := q.db.QueryRowContext(ctx, getProductProfilePicture, productID)
+	var i GetProductProfilePictureRow
+	err := row.Scan(
+		&i.FileID,
+		&i.Name,
+		&i.Path,
+		&i.MimeType,
+		&i.FileType,
+		&i.ProductID,
+	)
+	return i, err
+}
+
 const insertFile = `-- name: InsertFile :one
 INSERT INTO
-    files (name, path)
+    files (name, path, mime_type, file_type)
 VALUES
-    (?, ?) RETURNING file_id, name, path
+    (?, ?, ?, ?) RETURNING file_id, name, path, mime_type, file_type
 `
 
 type InsertFileParams struct {
-	Name string
-	Path sql.NullString
+	Name     string
+	Path     string
+	MimeType string
+	FileType sql.NullString
 }
 
 func (q *Queries) InsertFile(ctx context.Context, arg InsertFileParams) (File, error) {
-	row := q.db.QueryRowContext(ctx, insertFile, arg.Name, arg.Path)
+	row := q.db.QueryRowContext(ctx, insertFile,
+		arg.Name,
+		arg.Path,
+		arg.MimeType,
+		arg.FileType,
+	)
 	var i File
-	err := row.Scan(&i.FileID, &i.Name, &i.Path)
+	err := row.Scan(
+		&i.FileID,
+		&i.Name,
+		&i.Path,
+		&i.MimeType,
+		&i.FileType,
+	)
 	return i, err
 }
 
@@ -179,4 +419,59 @@ func (q *Queries) InsertProductFile(ctx context.Context, arg InsertProductFilePa
 	var i FilesProduct
 	err := row.Scan(&i.ProductID, &i.FileID)
 	return i, err
+}
+
+const setFileToProfilePicture = `-- name: SetFileToProfilePicture :exec
+UPDATE files
+SET
+    file_type = 'profile-picture'
+WHERE
+    file_id = ?
+`
+
+func (q *Queries) SetFileToProfilePicture(ctx context.Context, fileID int64) error {
+	_, err := q.db.ExecContext(ctx, setFileToProfilePicture, fileID)
+	return err
+}
+
+const unsetMaterialProfilePicture = `-- name: UnsetMaterialProfilePicture :exec
+UPDATE files
+SET
+    file_type = 'image'
+WHERE
+    file_type = 'profile-picture'
+    AND file_id IN (
+        SELECT
+            file_id
+        FROM
+            files_materials
+        WHERE
+            material_id = ?
+    )
+`
+
+func (q *Queries) UnsetMaterialProfilePicture(ctx context.Context, materialID sql.NullInt64) error {
+	_, err := q.db.ExecContext(ctx, unsetMaterialProfilePicture, materialID)
+	return err
+}
+
+const unsetProductProfilePicture = `-- name: UnsetProductProfilePicture :exec
+UPDATE files
+SET
+    file_type = 'image'
+WHERE
+    file_type = 'profile-picture'
+    AND file_id IN (
+        SELECT
+            file_id
+        FROM
+            files_products
+        WHERE
+            product_id = ?
+    )
+`
+
+func (q *Queries) UnsetProductProfilePicture(ctx context.Context, productID sql.NullInt64) error {
+	_, err := q.db.ExecContext(ctx, unsetProductProfilePicture, productID)
+	return err
 }

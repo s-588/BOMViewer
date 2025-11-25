@@ -9,9 +9,11 @@ import (
 )
 
 type File struct {
-	FileID int64
-	Name   string
-	Path   sql.NullString
+	FileID   int64
+	Name     string
+	Path     string
+	MimeType string
+	FileType sql.NullString
 }
 
 type FilesMaterial struct {
