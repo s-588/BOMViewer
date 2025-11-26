@@ -52,7 +52,7 @@ func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Reques
 	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		slog.Error("parse product id", "error", err, "where", "ProductFileUploadHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта").Render(r.Context(), w)
+		templates.InternalError("ошибка обработки идентификатора изделия").Render(r.Context(), w)
 		return
 	}
 

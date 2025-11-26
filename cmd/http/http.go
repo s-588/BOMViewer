@@ -73,6 +73,10 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("POST /products/{id}/set-profile-picture/{fileID}", s.handler.SetProductProfilePicture)
 	s.mux.HandleFunc("POST /materials/{id}/remove-profile-picture", s.handler.RemoveMaterialProfilePicture)
 	s.mux.HandleFunc("POST /products/{id}/remove-profile-picture", s.handler.RemoveProductProfilePicture)
+
+	s.mux.HandleFunc("GET /calculator", s.handler.CalculatorPageHandler)
+	s.mux.HandleFunc("GET /calculator/products/{id}/materials", s.handler.CalculatorProductMaterialsHandler)
+	s.mux.HandleFunc("POST /calculator/calculate", s.handler.CalculatorCalculateHandler)
 }
 
 func (s *Server) stop(w http.ResponseWriter, r *http.Request) {

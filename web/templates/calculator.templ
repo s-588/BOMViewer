@@ -1,0 +1,230 @@
+package templates
+
+import (
+	"strconv"
+
+	"github.com/s-588/BOMViewer/internal/models"
+)
+
+templ CalculatorPage(products []models.Product, calculableResults []models.CalculationResult, nonCalculableMaterials []models.Material, desiredQuantity int64) {
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-header">
+						<h4 class="card-title">Калькулятор материалов</h4>
+						<p class="card-subtitle">Расчет необходимых материалов для производства изделий</p>
+					</div>
+					<div class="card-body">
+						<!-- Product Selection -->
+						<div class="row mb-4">
+							<div class="col-12">
+								<label class="form-label">Выберите продукт:</label>
+								<div class="row" id="productList">
+									for _, product := range products {
+										<div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+											<div
+												class="card product-card h-100 cursor-pointer"
+												hx-get={ "/calculator/products/" + strconv.FormatInt(product.ID, 10) + "/materials" }
+												hx-target="#calculatorResults"
+												hx-trigger="click"
+											>
+												<div class="card-body text-center">
+													<h6 class="card-title">{ product.Name }</h6>
+												</div>
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						</div>
+						<!-- Results Section -->
+						<div id="calculatorResults">
+							if len(calculableResults) > 0 || len(nonCalculableMaterials) > 0 {
+								@CalculatorResults(calculableResults, nonCalculableMaterials, calculableResults[0].ProductID, desiredQuantity)
+							} else {
+								<div class="alert alert-info text-center">
+									<h5>Выберите продукт для расчета</h5>
+									<p class="mb-0">Нажмите на любой продукт из списка выше для отображения материалов и расчета</p>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<style>
+		.product-card {
+			transition: all 0.3s ease;
+			border: 2px solid #e9ecef;
+		}
+		.product-card:hover {
+			border-color: #007bff;
+			transform: translateY(-2px);
+			box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+		}
+		.product-card:active {
+			transform: translateY(0);
+		}
+		.cursor-pointer {
+			cursor: pointer;
+		}
+		.table th {
+			background-color: #f8f9fa;
+			font-weight: 600;
+		}
+	</style>
+}
+
+templ CalculatorResults(calculableResults []models.CalculationResult, nonCalculableMaterials []models.Material, productID, desiredQuantity int64) {
+	<div>
+		<!-- Desired Quantity Section - MOVED TO TOP -->
+		<div class="card mb-4">
+			<div class="card-header">
+				<h5 class="card-title mb-0">Желаемое количество продуктов</h5>
+			</div>
+			<div class="card-body">
+				<div class="row">
+					<div class="col-md-6">
+						<label for="desiredQuantity" class="form-label">Количество:</label>
+						<input
+							type="number"
+							class="form-control"
+							id="desiredQuantity"
+							name="desired_quantity"
+							value={ strconv.FormatInt(desiredQuantity, 10) }
+							min="1"
+							hx-get={ "/calculator/products/" + strconv.FormatInt(productID, 10) + "/materials" }
+							hx-target="#calculatorResults"
+							hx-trigger="change, keyup changed delay:500ms"
+							hx-include="[name^='remaining_']"
+						/>
+					</div>
+					<div class="col-md-6">
+						<label class="form-label">Результат расчета:</label>
+						if len(calculableResults) > 0 {
+							// Calculate overall production limit (bottleneck)
+							{{
+								
+	overallCanProduce := -1
+	for _, result := range calculableResults {
+		if result.IsCalculable {
+			if overallCanProduce == -1 || result.CanProduce < overallCanProduce {
+				overallCanProduce = result.CanProduce
+			}
+		}
+	}
+	if overallCanProduce == -1 {
+		overallCanProduce = 0
+	}
+							}}
+							<div
+								if overallCanProduce >= int(desiredQuantity) {
+									class="alert alert-success"
+								} else {
+									class="alert alert-danger"
+								}
+							>
+								<strong>Можно произвести: { strconv.Itoa(overallCanProduce) } единиц</strong>
+								if overallCanProduce >= int(desiredQuantity) {
+									<span class="ms-2">✓ Достаточно материалов</span>
+								} else {
+									<span class="ms-2">✗ Недостаточно материалов</span>
+								}
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Materials Input Section -->
+		<div class="card">
+			<div class="card-header">
+				<h5 class="card-title mb-0">Введите остатки материалов</h5>
+			</div>
+			<div class="card-body">
+				<!-- Calculable Materials Section -->
+				if len(calculableResults) > 0 {
+					<form id="materialsForm">
+						<input type="hidden" name="product_id" value={ strconv.FormatInt(productID, 10) }/>
+						<div class="table-responsive">
+							<table class="table table-bordered table-striped">
+								<thead class="table-light">
+									<tr>
+										<th>Материал</th>
+										<th>Требуется на единицу</th>
+										<th>Остаток на складе</th>
+										<th>Всего требуется</th>
+										<th>Дополнительно нужно</th>
+										<th>Можно произвести</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, result := range calculableResults {
+										<tr>
+											<td>
+												<strong>{ result.MaterialName }</strong>
+												<small class="text-muted d-block">{ result.Unit }</small>
+											</td>
+											<td class="text-center">{ result.RequiredPerUnit }</td>
+											<td>
+												<input
+													type="number"
+													class="form-control form-control-sm"
+													name={ "remaining_" + strconv.FormatInt(result.MaterialID, 10) }
+													value={ result.Remaining }
+													step="0.001"
+													min="0"
+													style="min-width: 120px;"
+													hx-get={ "/calculator/products/" + strconv.FormatInt(productID, 10) + "/materials" }
+													hx-target="#calculatorResults"
+													hx-trigger="change, keyup changed delay:500ms"
+													hx-include="#desiredQuantity, [name^='remaining_']"
+												/>
+											</td>
+											<td class="text-center">{ result.RequiredTotal }</td>
+											if result.AdditionalNeeded != "0" {
+												<td class="table-warning text-center">
+													<strong>{ result.AdditionalNeeded }</strong>
+												</td>
+											} else {
+												<td class="text-center">
+													<strong>{ result.AdditionalNeeded }</strong>
+												</td>
+											}
+											<!-- Color based on whether this material alone can satisfy desired quantity -->
+											if result.CanProduce >= int(desiredQuantity) {
+												<td class="table-success text-center">
+													<strong>{ strconv.Itoa(result.CanProduce) }</strong>
+												</td>
+											} else {
+												<td class="table-danger text-center">
+													<strong>{ strconv.Itoa(result.CanProduce) }</strong>
+												</td>
+											}
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					</form>
+				}
+				<!-- Non-Calculable Materials Section -->
+				if len(nonCalculableMaterials) > 0 {
+					<div class="alert alert-warning mt-4">
+						<h6 class="alert-heading">Материалы с нечисловым количеством:</h6>
+						<p class="mb-2">Следующие материалы имеют количество, которое не может быть распознано как число, и поэтому не участвуют в расчете:</p>
+						<ul class="mb-0">
+							for _, material := range nonCalculableMaterials {
+								<li>
+									<strong>{ material.PrimaryName }</strong> - { material.Quantity } { material.Unit.Name }
+								</li>
+							}
+						</ul>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}

@@ -7,6 +7,12 @@ templ header() {
 			@SearchBar("all", "main")
 			<div>
 				<a
+					hx-get="/calculator"
+					hx-target="#content"
+					hx-push-url="/calculator"
+					class="btn btn-outline-light btn-sm"
+				>Калькулятор материалов</a>
+				<a
 					hx-get="/materials?tab=materials"
 					hx-target="#content"
 					hx-push-url="/materials"

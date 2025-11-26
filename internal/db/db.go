@@ -585,6 +585,19 @@ func (r *Repository) GetProductMaterials(ctx context.Context, id int64) ([]model
 	}
 	materials := make([]models.Material, 0, len(materialRows))
 	for _, row := range materialRows {
+		var quantity string
+		switch qt := row.Quantity.(type) {
+		case int64:
+			quantity = fmt.Sprintf("%d", qt)
+		case float64:
+			quantity = fmt.Sprintf("%f", qt)
+		case string:
+			quantity = qt
+		default:
+			if row.QuantityText.Valid {
+				quantity = row.QuantityText.String
+			}
+		}
 		materials = append(materials, models.Material{
 			ID: row.MaterialID,
 			Unit: models.Unit{
@@ -593,6 +606,7 @@ func (r *Repository) GetProductMaterials(ctx context.Context, id int64) ([]model
 			},
 			Description: row.Description.String,
 			PrimaryName: row.MaterialName,
+			Quantity:    quantity,
 		})
 	}
 

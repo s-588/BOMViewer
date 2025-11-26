@@ -32,3 +32,16 @@ type File struct {
 	MimeType string `json:"mime_type"`
 	FileType string `json:"file_type"` // "image" or "document"
 }
+
+type CalculationResult struct {
+	MaterialID       int64
+	MaterialName     string
+	RequiredPerUnit  string
+	RequiredTotal    string
+	Remaining        string
+	CanProduce       int
+	AdditionalNeeded string
+	Unit             string
+	ProductID        int64
+	IsCalculable     bool
+}
