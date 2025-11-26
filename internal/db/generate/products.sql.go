@@ -249,6 +249,23 @@ func (q *Queries) InsertProduct(ctx context.Context, arg InsertProductParams) (P
 	return i, err
 }
 
+const updateProduct = `-- name: UpdateProduct :exec
+UPDATE products 
+SET name = ?, description = ?
+WHERE product_id = ?
+`
+
+type UpdateProductParams struct {
+	Name        string
+	Description sql.NullString
+	ProductID   int64
+}
+
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
+	_, err := q.db.ExecContext(ctx, updateProduct, arg.Name, arg.Description, arg.ProductID)
+	return err
+}
+
 const updateProductDescription = `-- name: UpdateProductDescription :exec
 UPDATE products
 SET

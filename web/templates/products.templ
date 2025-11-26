@@ -257,6 +257,38 @@ templ ProductForm(product models.Product, materials []models.Material, action st
 			</button>
 		</div>
 	</form>
+	// Add this script to your ProductForm in products.templ
+	<script>
+function toggleMaterialQuantity(checkbox) {
+    const materialId = checkbox.value;
+    const quantityInput = document.querySelector(`input[name="quantity_${materialId}"]`);
+    if (quantityInput) {
+        // For table rows, we need to find the parent row and show/hide the quantity cell
+        const row = checkbox.closest('tr');
+        if (row) {
+            const quantityCell = row.querySelector('td:last-child'); // Assuming quantity is in last cell
+            if (quantityCell) {
+                quantityCell.style.display = checkbox.checked ? 'table-cell' : 'none';
+            }
+        }
+        
+        if (!checkbox.checked) {
+            quantityInput.value = '';
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name="material_ids"]').forEach(checkbox => {
+        toggleMaterialQuantity(checkbox);
+        // Add event listener for future changes
+        checkbox.addEventListener('change', function() {
+            toggleMaterialQuantity(this);
+        });
+    });
+});
+</script>
 }
 
 type ProductMaterialRow struct {

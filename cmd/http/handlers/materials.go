@@ -17,14 +17,14 @@ import (
 func (h *Handler) MaterialPageHandler(w http.ResponseWriter, r *http.Request) {
 	units, err := h.db.GetAllUnits(r.Context())
 	if err != nil {
-		slog.Error("can't get units", "error", err, "where", "MaterialListHandler")
+		slog.Error("can't get units", "error", err, "where", "MaterialPageHandler")
 		templates.InternalError("ошибка получения списка единиц измерения для фильтров").Render(r.Context(), w)
 		return
 	}
 
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("can't get products", "error", err, "where", "MaterialListHandler")
+		slog.Error("can't get products", "error", err, "where", "MaterialPageHandler")
 		templates.InternalError("ошибка получения списка продуктов для фильтров").Render(r.Context(), w)
 		return
 	}
@@ -32,7 +32,7 @@ func (h *Handler) MaterialPageHandler(w http.ResponseWriter, r *http.Request) {
 	// Get initial materials (unfiltered)
 	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
-		slog.Error("can't get materials", "error", err, "where", "MaterialListHandler")
+		slog.Error("can't get materials", "error", err, "where", "MaterialPageHandler")
 		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
 		return
 	}
@@ -70,18 +70,28 @@ func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get all materials and apply filters
-	allMaterials, err := h.db.GetAllMaterials(r.Context())
-	if err != nil {
-		slog.Error("can't get materials", "error", err, "where", "MaterialTableHandler")
-		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
-		return
+	var allMaterials []models.Material
+	var err error
+	if primaryOnly {
+		allMaterials, err = h.db.GetAllMaterialsWithPrimaryNames(r.Context())
+		if err != nil {
+			slog.Error("can't get materials with primary name", "error", err, "where", "MaterialTableHandler")
+			templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+			return
+		}
+	} else {
+		allMaterials, err = h.db.GetAllMaterials(r.Context())
+		if err != nil {
+			slog.Error("can't get materials", "error", err, "where", "MaterialTableHandler")
+			templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+			return
+		}
 	}
 
 	// Apply filtering and sorting using your helper functions
 	filteredMaterials := helpers.FilterMaterials(allMaterials, helpers.MaterialFilterArgs{
-		PrimaryOnly: primaryOnly,
-		ProductIDs:  filtersProducts,
-		UnitIDs:     filtersUnits,
+		ProductIDs: filtersProducts,
+		UnitIDs:    filtersUnits,
 	})
 
 	// Apply sorting
@@ -119,32 +129,59 @@ func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("materila table filtered materials", "materials", filteredMaterials)
 
 	// Return only the table, not the full page
-	templates.MainMaterialList(filteredMaterials, args).Render(r.Context(), w)
+	err = templates.MainMaterialList(filteredMaterials, args).Render(r.Context(), w)
+	if err != nil {
+		slog.Error("cannot render material list", "error", err, "where", "MaterialTableHandler")
+	}
 }
 
 func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		slog.Error("parse form error", "error", err, "where", "MaterialNewHandler")
+		templates.InternalError("ошибка обработки формы").Render(r.Context(), w)
+		return
+	}
+
 	primaryName := r.FormValue("primary_name")
 	names := r.Form["other_names"]
-	if err := validateNames(names); err != nil {
-		slog.Error("validate names", "error", err, "where", "MaterialNewHandler")
-	}
+
+	// Debug form values
+	slog.Debug("form values", "primary_name", primaryName, "names", names,
+		"all_form", r.Form)
+
 	if primaryName == "" && len(names) == 0 {
 		templates.InternalError("хотя бы одно имя должно быть указано").Render(r.Context(), w)
+		return
 	}
+
+	if err := validateNames(names); err != nil {
+		slog.Error("validate names", "error", err, "where", "MaterialNewHandler")
+		templates.InternalError("ошибка валидации имен: "+err.Error()).Render(r.Context(), w)
+		return
+	}
+
+	// Handle names - ensure primary name is included
 	if primaryName != "" && !slices.Contains(names, primaryName) {
 		names = append(names, primaryName)
+	}
+
+	// If no primary name but we have names, use the first one
+	if primaryName == "" && len(names) > 0 {
+		primaryName = names[0]
 	}
 
 	unitID, err := strconv.ParseInt(r.FormValue("unit_id"), 10, 64)
 	if err != nil {
 		slog.Error("unit error", "error", err, "where", "MaterialNewHandler")
-		templates.NotFoundError("внутреняя ошибка").Render(r.Context(), w)
+		templates.InternalError("ошибка обработки единицы измерения").Render(r.Context(), w)
+		return
 	}
+
 	unit, err := h.db.GetUnitByID(r.Context(), unitID)
 	if err != nil {
 		slog.Error("unit error", "error", err, "where", "MaterialNewHandler")
-		templates.NotFoundError("единица измерения не существует").Render(r.Context(), w)
+		templates.InternalError("единица измерения не существует").Render(r.Context(), w)
+		return
 	}
 
 	material := models.Material{
@@ -153,26 +190,43 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 		Description: r.FormValue("description"),
 		Unit:        unit,
 	}
+
 	material, err = h.db.InsertMaterial(r.Context(), material)
 	if err != nil {
 		slog.Error("can't insert material", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("внутренняя ошибка").Render(r.Context(), w)
+		templates.InternalError("внутренняя ошибка при создании материала").Render(r.Context(), w)
+		return
 	}
 
+	slog.Info("new material successfully created", "material_id", material.ID, "names", material.Names)
+
+	// Handle product associations
 	productsIds := r.Form["product_ids"]
-	for _, id := range productsIds {
-		productID, err := strconv.ParseInt(id, 10, 64)
+	slog.Debug("product associations", "product_ids", productsIds)
+
+	// In MaterialNewHandler, replace the product association loop with:
+	for _, idStr := range productsIds {
+		productID, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			slog.Error("parse product id", "error", err, "where", "MaterialNewHandler")
-			templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
-			return
+			continue
 		}
+
 		quantity := r.FormValue(fmt.Sprintf("quantity_%d", productID))
-		err = h.db.AddProductMaterial(r.Context(), productID, material.ID, quantity)
-		if err != nil {
-			slog.Error("can't add product to material", "error", err, "where", "MaterialNewHandler")
-			templates.InternalError("внутренняя ошибка").Render(r.Context(), w)
-			return
+
+		// Only add product association if quantity is provided
+		if quantity != "" {
+			slog.Debug("adding product material", "product_id", productID, "quantity", quantity)
+
+			err = h.db.AddProductMaterial(r.Context(), productID, material.ID, quantity)
+			if err != nil {
+				slog.Error("can't add product to material", "error", err, "product_id", productID, "where", "MaterialNewHandler")
+				continue
+			}
+
+			slog.Info("material connected to product", "material_id", material.ID, "product_id", productID)
+		} else {
+			slog.Debug("skipping product without quantity", "product_id", productID)
 		}
 	}
 
@@ -189,12 +243,15 @@ func parseUnit(unit string) (models.Unit, error) {
 }
 
 func validateNames(names []string) error {
+	names = slices.DeleteFunc(names, func(name string) bool {
+		return name == ""
+	})
 	if len(names) < 1 {
 		return errors.New("хотябы одно имя должно быть")
 	}
 	for _, name := range names {
-		if len(name) < 2 || name == "" || len(name) > 200 {
-			return errors.New("длина имени должна быть от 2 до 200 символов")
+		if len(name) > 250 || len(name) < 1 {
+			return errors.New("длина имени должна быть от 1 до 250 символов - " + name)
 		}
 	}
 	return nil
@@ -203,59 +260,139 @@ func validateNames(names []string) error {
 func (h *Handler) MaterialViewHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		// handle error
+		slog.Error("parse material id", "error", err, "where", "MaterialViewHandler")
+		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		return
 	}
+
 	material, err := h.db.GetMaterialByID(r.Context(), id)
 	if err != nil {
-		// handle error
+		slog.Error("get material by id", "error", err, "material_id", id, "where", "MaterialViewHandler")
+		templates.NotFoundError("материал не найден").Render(r.Context(), w)
+		return
 	}
+
+	// Debug log to see what we're getting
+	slog.Debug("material retrieved", "id", material.ID, "primary_name", material.PrimaryName,
+		"names", material.Names, "description", material.Description)
+
 	files, err := h.db.GetMaterialFiles(r.Context(), id)
 	if err != nil {
-		// handle error
+		slog.Error("get material files", "error", err, "where", "MaterialViewHandler")
+		files = []models.File{}
 	}
+
 	profilePicture, err := h.db.GetMaterialProfilePicture(r.Context(), id)
 	if err != nil {
-		// handle error
+		slog.Warn("get material profile picture", "error", err, "where", "MaterialViewHandler")
 	}
 
 	templates.MaterialView(material, files, &profilePicture).Render(r.Context(), w)
 }
 
 func (h *Handler) MaterialUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	// Get material ID from URL
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse material id", "error", err, "where", "MaterialUpdateHandler")
+		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		return
+	}
+
 	material, err := getMaterialFromRequest(r)
 	if err != nil {
 		slog.Error("get material from request", "error", err, "where", "MaterialUpdateHandler")
 		templates.InternalError("ошибка получения материала: "+err.Error()).Render(r.Context(), w)
 		return
 	}
+	material.ID = id // Set the ID from URL
 
+	slog.Debug("updating material", "id", material.ID, "primary_name", material.PrimaryName,
+		"names", material.Names, "description", material.Description)
+
+	// Update basic fields
 	if material.Description != "" {
-		h.db.UpdateMaterialDescription(r.Context(), material.ID, material.Description)
+		if err := h.db.UpdateMaterialDescription(r.Context(), material.ID, material.Description); err != nil {
+			slog.Error("update material description", "error", err, "where", "MaterialUpdateHandler")
+		}
 	}
+
 	if material.Unit.Name != "" {
-		h.db.UpdateMaterialUnit(r.Context(), material.ID, material.Unit.Name)
+		if err := h.db.UpdateMaterialUnit(r.Context(), material.ID, material.Unit.Name); err != nil {
+			slog.Error("update material unit", "error", err, "where", "MaterialUpdateHandler")
+		}
 	}
+
 	if len(material.Names) != 0 {
-		h.db.UpdateMaterialNames(r.Context(), material.ID, material.PrimaryName, material.Names)
+		if err := h.db.UpdateMaterialNames(r.Context(), material.ID, material.PrimaryName, material.Names); err != nil {
+			slog.Error("update material names", "error", err, "where", "MaterialUpdateHandler")
+		}
 	}
+
+	// Update product associations
+	productsIds := r.Form["product_ids"]
+	slog.Debug("updating product associations", "product_ids", productsIds)
+
+	// Then add the new ones
+	products := make([]models.Product, 0, len(productsIds))
+	for _, idStr := range productsIds {
+		productID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			slog.Error("parse product id", "error", err, "where", "MaterialUpdateHandler")
+			continue
+		}
+
+		quantity := r.FormValue(fmt.Sprintf("quantity_%d", productID))
+		products = append(products, models.Product{
+			ID:       productID,
+			Quantity: quantity,
+		})
+	}
+
+	// First, remove all existing product associations
+	if err := h.db.UpdateMaterialProducts(r.Context(), material.ID, products); err != nil {
+		slog.Error("remove product materials", "error", err, "where", "MaterialUpdateHandler")
+	}
+
+	// Redirect to the material view page
+	http.Redirect(w, r, fmt.Sprintf("/materials/%d", material.ID), http.StatusSeeOther)
 }
 
 func getMaterialFromRequest(r *http.Request) (models.Material, error) {
 	var material models.Material
-	r.ParseForm()
+
+	if err := r.ParseForm(); err != nil {
+		return material, err
+	}
+
 	primaryName := r.FormValue("primary-name")
-	names := r.Form["names"]
+	names := r.Form["other-names"]
+
+	// Include primary name in the names list if it's not empty
+	if primaryName != "" && !slices.Contains(names, primaryName) {
+		names = append(names, primaryName)
+	}
+	slog.Debug("parsed material names", "primaryName", primaryName, "otherNames", names, "where", "getMaterialFromRequest")
+
 	if err := validateNames(names); err != nil {
 		return material, err
 	}
+	slog.Debug("parsed material names", "primaryName", primaryName, "otherNames", names, "where", "getMaterialFromRequest")
+
 	material.PrimaryName = primaryName
 	material.Names = names
 	material.Description = r.FormValue("description")
-	var err error
-	material.Unit, err = parseUnit(r.FormValue("unit"))
-	if err != nil {
-		return material, err
+
+	// Handle unit
+	unitIDStr := r.FormValue("unit-id")
+	if unitIDStr != "" {
+		unitID, err := strconv.ParseInt(unitIDStr, 10, 64)
+		if err == nil {
+			// We'll fetch the actual unit in the handler
+			material.Unit = models.Unit{ID: unitID}
+		}
 	}
+
 	return material, nil
 }
 
@@ -517,7 +654,37 @@ func (h *Handler) SetMaterialProfilePicture(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	h.MaterialViewHandler(w, r)
+	// h.MaterialViewHandler(w, r)
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse material id", "error", err, "where", "MaterialViewHandler")
+		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		return
+	}
+
+	material, err := h.db.GetMaterialByID(r.Context(), id)
+	if err != nil {
+		slog.Error("get material by id", "error", err, "material_id", id, "where", "MaterialViewHandler")
+		templates.NotFoundError("материал не найден").Render(r.Context(), w)
+		return
+	}
+
+	// Debug log to see what we're getting
+	slog.Debug("material retrieved", "id", material.ID, "primary_name", material.PrimaryName,
+		"names", material.Names, "description", material.Description)
+
+	files, err := h.db.GetMaterialFiles(r.Context(), id)
+	if err != nil {
+		slog.Error("get material files", "error", err, "where", "MaterialViewHandler")
+		files = []models.File{}
+	}
+
+	profilePicture, err := h.db.GetMaterialProfilePicture(r.Context(), id)
+	if err != nil {
+		slog.Warn("get material profile picture", "error", err, "where", "MaterialViewHandler")
+	}
+
+	templates.MaterialView(material, files, &profilePicture).Render(r.Context(), w)
 }
 
 func (h *Handler) RemoveMaterialProfilePicture(w http.ResponseWriter, r *http.Request) {

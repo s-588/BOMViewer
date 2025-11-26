@@ -51,18 +51,16 @@ type MaterialFilterArgs struct {
 }
 
 func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, error) {
-	// Fetch all base materials without filters (simple static query).
 	rows, err := r.queries.GetAllMaterials(ctx)
 	if err != nil {
 		return nil, parseError(err)
 	}
-	// Group by material ID and aggregate products
+
 	materialsMap := make(map[int64]*models.Material)
 
 	for _, row := range rows {
 		materialID := row.MaterialID
 
-		// Create material if it doesn't exist
 		if _, exists := materialsMap[materialID]; !exists {
 			material := &models.Material{
 				ID: materialID,
@@ -71,8 +69,8 @@ func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, er
 					Name: row.Unit,
 				},
 				Description: row.Description.String,
-				PrimaryName: row.PrimaryName,
-				Names:       []string{row.PrimaryName},
+				PrimaryName: row.MaterialName,
+				Names:       []string{},
 				Products:    []models.Product{},
 			}
 
@@ -85,17 +83,103 @@ func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, er
 			materialsMap[materialID] = material
 		}
 
-		// Add product if it exists for this material
-		if row.ProductID.Valid {
-			product := models.Product{
-				ID:   row.ProductID.Int64,
-				Name: row.ProductName.String,
+		// Add the current name to the material's names (avoid duplicates)
+		currentName := row.MaterialName
+		if currentName != "" {
+			// Check if name already exists to avoid duplicates
+			nameExists := false
+			for _, existingName := range materialsMap[materialID].Names {
+				if existingName == currentName {
+					nameExists = true
+					break
+				}
 			}
-			materialsMap[materialID].Products = append(materialsMap[materialID].Products, product)
+			if !nameExists {
+				materialsMap[materialID].Names = append(materialsMap[materialID].Names, currentName)
+			}
+		}
+
+		// Add product if it exists
+		if row.ProductID.Valid {
+			// Check if product already exists to avoid duplicates
+			productExists := false
+			for _, existingProduct := range materialsMap[materialID].Products {
+				if existingProduct.ID == row.ProductID.Int64 {
+					productExists = true
+					break
+				}
+			}
+			if !productExists {
+				product := models.Product{
+					ID:   row.ProductID.Int64,
+					Name: row.ProductName.String,
+				}
+				materialsMap[materialID].Products = append(materialsMap[materialID].Products, product)
+			}
 		}
 	}
 
-	// Convert map to slice
+	materials := make([]models.Material, 0, len(materialsMap))
+	for _, material := range materialsMap {
+		materials = append(materials, *material)
+	}
+
+	return materials, nil
+}
+
+func (r *Repository) GetAllMaterialsWithPrimaryNames(ctx context.Context) ([]models.Material, error) {
+	rows, err := r.queries.GetAllMaterialsWithPrimaryNames(ctx)
+	if err != nil {
+		return nil, parseError(err)
+	}
+
+	materialsMap := make(map[int64]*models.Material)
+
+	for _, row := range rows {
+		materialID := row.MaterialID
+
+		if _, exists := materialsMap[materialID]; !exists {
+			material := &models.Material{
+				ID: materialID,
+				Unit: models.Unit{
+					ID:   row.UnitID,
+					Name: row.Unit,
+				},
+				Description: row.Description.String,
+				PrimaryName: row.MaterialName,
+				Names:       []string{},
+				Products:    []models.Product{},
+			}
+
+			if q, ok := row.Quantity.(string); ok {
+				material.Quantity = q
+			} else {
+				material.Quantity = row.QuantityText.String
+			}
+
+			materialsMap[materialID] = material
+		}
+
+		// Add product if it exists
+		if row.ProductID.Valid {
+			// Check if product already exists to avoid duplicates
+			productExists := false
+			for _, existingProduct := range materialsMap[materialID].Products {
+				if existingProduct.ID == row.ProductID.Int64 {
+					productExists = true
+					break
+				}
+			}
+			if !productExists {
+				product := models.Product{
+					ID:   row.ProductID.Int64,
+					Name: row.ProductName.String,
+				}
+				materialsMap[materialID].Products = append(materialsMap[materialID].Products, product)
+			}
+		}
+	}
+
 	materials := make([]models.Material, 0, len(materialsMap))
 	for _, material := range materialsMap {
 		materials = append(materials, *material)
@@ -106,7 +190,7 @@ func (r *Repository) GetAllMaterials(ctx context.Context) ([]models.Material, er
 
 func (r *Repository) InsertMaterial(ctx context.Context, material models.Material) (models.Material, error) {
 	materialRow, err := r.queries.InsertMaterial(ctx, sqlite.InsertMaterialParams{
-		Unit: material.Unit.Name,
+		Unit: material.Unit.Name, // This might be the issue!
 		Description: sql.NullString{
 			String: material.Description,
 			Valid:  true,
@@ -554,14 +638,17 @@ func (r *Repository) AddProductMaterial(ctx context.Context, productID, material
 		ProductID:  sql.NullInt64{Int64: productID, Valid: true},
 		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 	}
-	if quantity == "" {
-		return errors.New("quantity is required")
+
+	// Make quantity optional - only set if provided
+	if quantity != "" {
+		if quantityInt, err := strconv.ParseInt(quantity, 10, 64); err == nil {
+			req.Quantity = quantityInt
+		} else {
+			req.QuantityText = sql.NullString{String: quantity, Valid: true}
+		}
 	}
-	if quantityInt, err := strconv.ParseInt(quantity, 10, 64); err != nil {
-		req.QuantityText = sql.NullString{String: quantity, Valid: true}
-	} else {
-		req.Quantity = quantityInt
-	}
+	// If quantity is empty, both Quantity and QuantityText will be NULL/empty
+
 	err := r.queries.AddProductMaterial(ctx, req)
 	return parseError(err)
 }
@@ -610,24 +697,6 @@ func (r *Repository) UpdateProductName(ctx context.Context, id int64, name strin
 		Name:      name,
 	})
 	return parseError(err)
-}
-
-func (r *Repository) UpdateProductMaterials(ctx context.Context, id int64, materials []models.Material) error {
-	err := r.queries.DeleteAllProductMaterials(ctx, sql.NullInt64{Int64: id, Valid: true})
-	if err != nil {
-		return parseError(err)
-	}
-	for _, m := range materials {
-		err = r.queries.UpdateProductMaterial(ctx, sqlite.UpdateProductMaterialParams{
-			ProductID:  sql.NullInt64{Int64: id, Valid: true},
-			MaterialID: sql.NullInt64{Int64: m.ID, Valid: true},
-			Quantity:   m.Quantity,
-		})
-		if err != nil {
-			return parseError(err)
-		}
-	}
-	return nil
 }
 
 func (r *Repository) UpdateProductDescription(ctx context.Context, d int64, description string) error {
@@ -788,36 +857,47 @@ func (r *Repository) SetMaterialProfilePicture(ctx context.Context, materialID, 
 	if err != nil {
 		return parseError(err)
 	}
-	_, err = r.queries.InsertMaterialFile(ctx, sqlite.InsertMaterialFileParams{
-		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
-		FileID:     sql.NullInt64{Int64: fileID, Valid: true},
-	})
 	if err != nil {
 		return parseError(err)
 	}
 	return nil
 }
 
+// In your db.go - fix the SetProductProfilePicture method
 func (r *Repository) SetProductProfilePicture(ctx context.Context, productID, fileID int64) error {
-	err := r.queries.SetFileToProfilePicture(ctx, fileID)
+	// First, check if the file is already associated with the product
+	files, err := r.queries.GetProductFiles(ctx, sql.NullInt64{Int64: productID, Valid: true})
 	if err != nil {
 		return parseError(err)
 	}
-	_, err = r.queries.InsertProductFile(ctx, sqlite.InsertProductFileParams{
-		ProductID: sql.NullInt64{Int64: productID, Valid: true},
-		FileID:    sql.NullInt64{Int64: fileID, Valid: true},
-	})
-	if err != nil {
-		return parseError(err)
+
+	// Check if file is already associated
+	fileAlreadyAssociated := false
+	for _, file := range files {
+		if file.FileID == fileID {
+			fileAlreadyAssociated = true
+			break
+		}
 	}
-	return nil
+
+	// Only insert if not already associated
+	if !fileAlreadyAssociated {
+		_, err = r.queries.InsertProductFile(ctx, sqlite.InsertProductFileParams{
+			ProductID: sql.NullInt64{Int64: productID, Valid: true},
+			FileID:    sql.NullInt64{Int64: fileID, Valid: true},
+		})
+		if err != nil {
+			return parseError(err)
+		}
+	}
+
+	// Now set as profile picture
+	err = r.queries.SetFileToProfilePicture(ctx, fileID)
+	return parseError(err)
 }
 func (r *Repository) UnsetMaterialProfilePicture(ctx context.Context, materialID int64) error {
-	err := r.queries.UnsetMaterialProfilePicture(ctx, sql.NullInt64{Int64: materialID, Valid: true})
-	if err != nil {
-		return parseError(err)
-	}
-	return parseError(err)
+	return parseError(r.queries.UnsetMaterialProfilePicture(ctx, sql.NullInt64{Int64: materialID, Valid: true}))
+
 }
 func (r *Repository) UnsetProductProfilePicture(ctx context.Context, productID int64) error {
 	return parseError(r.queries.UnsetProductProfilePicture(ctx, sql.NullInt64{Int64: productID, Valid: true}))
@@ -857,4 +937,77 @@ func (r *Repository) GetAllProductImages(ctx context.Context, productID int64) (
 		})
 	}
 	return files, nil
+}
+
+func (r *Repository) UpdateMaterialProducts(ctx context.Context, materialID int64, productIDs []models.Product) error {
+	err := r.queries.DeleteAllMaterialProducts(ctx, sql.NullInt64{Int64: materialID, Valid: true})
+	if err != nil {
+		return parseError(err)
+	}
+
+	for _, product := range productIDs {
+		args := sqlite.AddProductMaterialParams{
+			ProductID:  sql.NullInt64{Int64: product.ID, Valid: true},
+			MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
+		}
+		if q, err := strconv.ParseInt(product.Quantity, 10, 64); err == nil {
+			args.Quantity = q
+		} else {
+			args.QuantityText = sql.NullString{String: product.Quantity, Valid: true}
+		}
+		err := r.queries.AddProductMaterial(ctx, args)
+		if err != nil {
+			return parseError(err)
+		}
+	}
+	return nil
+}
+
+// UpdateProduct updates a product's basic information
+func (r *Repository) UpdateProduct(ctx context.Context, id int64, name, description string) error {
+	err := r.queries.UpdateProductName(ctx, sqlite.UpdateProductNameParams{
+		ProductID: id,
+		Name:      name,
+	})
+	if err != nil {
+		return parseError(err)
+	}
+
+	err = r.queries.UpdateProductDescription(ctx, sqlite.UpdateProductDescriptionParams{
+		ProductID:   id,
+		Description: sql.NullString{String: description, Valid: description != ""},
+	})
+	return parseError(err)
+}
+
+// UpdateProductMaterials updates all materials for a product
+func (r *Repository) UpdateProductMaterials(ctx context.Context, productID int64, materials []models.Material) error {
+	// Delete all existing material associations
+	err := r.queries.DeleteAllProductMaterials(ctx, sql.NullInt64{Int64: productID, Valid: true})
+	if err != nil {
+		return parseError(err)
+	}
+
+	// Add new material associations
+	for _, material := range materials {
+		args := sqlite.AddProductMaterialParams{
+			ProductID:  sql.NullInt64{Int64: productID, Valid: true},
+			MaterialID: sql.NullInt64{Int64: material.ID, Valid: true},
+		}
+
+		// Handle quantity - similar to how materials handle it
+		if material.Quantity != "" {
+			if q, err := strconv.ParseInt(material.Quantity, 10, 64); err == nil {
+				args.Quantity = q
+			} else {
+				args.QuantityText = sql.NullString{String: material.Quantity, Valid: true}
+			}
+		}
+
+		err := r.queries.AddProductMaterial(ctx, args)
+		if err != nil {
+			return parseError(err)
+		}
+	}
+	return nil
 }

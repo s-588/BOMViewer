@@ -5,23 +5,17 @@ import (
 	"github.com/s-588/BOMViewer/internal/models"
 )
 
-// In your material_view.templ
 templ MaterialView(material models.Material, files []models.File, profilePicture *models.File) {
 	<div class="container my-4">
 		<div class="row">
 			<!-- Main content -->
 			<div class="col-md-8">
 				<h2 class="mb-3">{ material.PrimaryName }</h2>
-				
 				<!-- Description -->
 				<div class="mb-4">
 					<h5>Описание</h5>
 					<p class="text-muted">{ material.Description }</p>
 				</div>
-				
-				<!-- File Manager -->
-				@FileManager(material.ID, "materials", files)
-				
 				<!-- Other Names -->
 				if len(material.Names) > 1 {
 					<div class="mb-4">
@@ -35,7 +29,6 @@ templ MaterialView(material models.Material, files []models.File, profilePicture
 						</ul>
 					</div>
 				}
-				
 				<!-- Products Using This Material -->
 				<div class="mb-4">
 					<h5>Используется в продуктах</h5>
@@ -72,16 +65,15 @@ templ MaterialView(material models.Material, files []models.File, profilePicture
 					}
 				</div>
 			</div>
-			
 			<!-- Profile Picture Sidebar -->
 			<div class="col-md-4">
 				<div id="profile-picture-section">
 					@ProfilePicture(material.ID, "materials", profilePicture, files)
+					@FileManager(material.ID, "materials", files)
 				</div>
 			</div>
 		</div>
 	</div>
-	
 	@SetProfilePictureModal(material.ID, "materials", getImageFiles(files))
 }
 
@@ -112,16 +104,11 @@ templ ProductView(product models.Product, files []models.File, profilePicture *m
 			<!-- Main content -->
 			<div class="col-md-8">
 				<h2 class="mb-3">{ product.Name }</h2>
-				
 				<!-- Description -->
 				<div class="mb-4">
 					<h5>Описание</h5>
 					<p class="text-muted">{ product.Description }</p>
 				</div>
-				
-				<!-- File Manager -->
-				@FileManager(product.ID, "products", files)
-				
 				<!-- Materials List -->
 				<div>
 					<h5>Материалы</h5>
@@ -158,15 +145,15 @@ templ ProductView(product models.Product, files []models.File, profilePicture *m
 					}
 				</div>
 			</div>
-			
 			<!-- Profile Picture Sidebar -->
 			<div class="col-md-4">
 				<div id="profile-picture-section">
 					@ProfilePicture(product.ID, "products", profilePicture, files)
+					<!-- File Manager -->
+					@FileManager(product.ID, "products", files)
 				</div>
 			</div>
 		</div>
 	</div>
-	
 	@SetProfilePictureModal(product.ID, "products", getImageFiles(files))
 }

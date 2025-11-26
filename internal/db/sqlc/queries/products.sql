@@ -101,3 +101,8 @@ WHERE
 DELETE FROM product_materials
 WHERE
     product_id = ?;
+    
+-- name: UpdateProduct :exec
+UPDATE products 
+SET name = ?, description = ?
+WHERE product_id = ?;

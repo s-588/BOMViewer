@@ -110,7 +110,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var4 string
 						templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/files/preview/%d", file.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 48, Col: 57}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 47, Col: 57}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 						if templ_7745c5c3_Err != nil {
@@ -123,7 +123,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var5 string
 						templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(file.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 50, Col: 25}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 49, Col: 25}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 						if templ_7745c5c3_Err != nil {
@@ -136,7 +136,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var6 string
 						templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/files/preview/%d", file.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 53, Col: 68}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 52, Col: 68}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 						if templ_7745c5c3_Err != nil {
@@ -149,7 +149,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var7 string
 						templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(file.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 54, Col: 37}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 53, Col: 37}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 						if templ_7745c5c3_Err != nil {
@@ -187,7 +187,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var8 string
 						templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(file.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 66, Col: 56}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 65, Col: 56}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 						if templ_7745c5c3_Err != nil {
@@ -200,7 +200,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var9 string
 						templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(getFileTypeDisplay(file.MimeType))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 67, Col: 71}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 66, Col: 71}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 						if templ_7745c5c3_Err != nil {
@@ -219,7 +219,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var10 templ.SafeURL
 						templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(fmt.Sprintf("/files/%d", file.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 73, Col: 51}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 72, Col: 51}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 						if templ_7745c5c3_Err != nil {
@@ -232,13 +232,13 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						var templ_7745c5c3_Var11 string
 						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/%s/%d/files/%d", entityType, entityID, file.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 81, Col: 84}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 80, Col: 84}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" hx-target=\"#file-list-container\" hx-confirm=\"Удалить файл?\">Удалить</button></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" hx-target=\"#content\">Удалить</button></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -296,7 +296,7 @@ func ProfilePicture(entityID int64, entityType string, profilePicture *models.Fi
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/files/preview/%d", profilePicture.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 114, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 112, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -309,7 +309,7 @@ func ProfilePicture(entityID int64, entityType string, profilePicture *models.Fi
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/files/preview/%d", profilePicture.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 119, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 117, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -322,7 +322,7 @@ func ProfilePicture(entityID int64, entityType string, profilePicture *models.Fi
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(profilePicture.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 120, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 118, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -335,20 +335,20 @@ func ProfilePicture(entityID int64, entityType string, profilePicture *models.Fi
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/%s/%d/remove-profile-picture", entityType, entityID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 125, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 123, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" hx-target=\"#profile-picture-section\" hx-confirm=\"Удалить основное изображение?\"><i class=\"fas fa-times\"></i> Удалить</button> <small class=\"text-muted d-block mt-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" hx-target=\"#content\" hx-confirm=\"Удалить основное изображение?(оно останется в списке файлов)\"><i class=\"fas fa-times\"></i> Удалить</button> <small class=\"text-muted d-block mt-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(profilePicture.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 131, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 129, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -359,7 +359,7 @@ func ProfilePicture(entityID int64, entityType string, profilePicture *models.Fi
 				return templ_7745c5c3_Err
 			}
 		} else if len(availableImages) > 0 && hasValidImages(availableImages) {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"text-center mb-4\"><h5>Основное изображение</h5><p class=\"text-muted\">Не установлено</p><button class=\"btn btn-outline-primary btn-sm\" data-set-profile-picture=\"true\"><i class=\"fas fa-image\"></i> Установить основное изображение</button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div class=\"text-center mb-4\"><p class=\"text-muted\">Изображение не установлено</p><button class=\"btn btn-outline-primary btn-sm\" data-set-profile-picture=\"true\"><i class=\"fas fa-image\"></i> Выбрать</button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -416,7 +416,7 @@ func SetProfilePictureModal(entityID int64, entityType string, imageFiles []mode
 					var templ_7745c5c3_Var19 string
 					templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/files/preview/%d", file.ID))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 171, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 168, Col: 59}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 					if templ_7745c5c3_Err != nil {
@@ -429,7 +429,7 @@ func SetProfilePictureModal(entityID int64, entityType string, imageFiles []mode
 					var templ_7745c5c3_Var20 string
 					templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(file.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 173, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 170, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 					if templ_7745c5c3_Err != nil {
@@ -442,7 +442,7 @@ func SetProfilePictureModal(entityID int64, entityType string, imageFiles []mode
 					var templ_7745c5c3_Var21 string
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", entityID))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 176, Col: 56}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 173, Col: 56}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 					if templ_7745c5c3_Err != nil {
@@ -455,7 +455,7 @@ func SetProfilePictureModal(entityID int64, entityType string, imageFiles []mode
 					var templ_7745c5c3_Var22 string
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(entityType)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 177, Col: 41}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 174, Col: 41}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -468,7 +468,7 @@ func SetProfilePictureModal(entityID int64, entityType string, imageFiles []mode
 					var templ_7745c5c3_Var23 string
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", file.ID))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 178, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 175, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -481,7 +481,7 @@ func SetProfilePictureModal(entityID int64, entityType string, imageFiles []mode
 					var templ_7745c5c3_Var24 string
 					templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(file.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 181, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/files.templ`, Line: 178, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 					if templ_7745c5c3_Err != nil {

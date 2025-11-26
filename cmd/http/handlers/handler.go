@@ -23,6 +23,8 @@ func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
 		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
 		return
 	}
+	sortCfg := helpers.ParseSortString("name")
+	helpers.SortMaterials(materials, sortCfg)
 
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
@@ -47,7 +49,7 @@ func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
 		AllProducts: products,
 	}
 
-	err = templates.Index(r.Context(), materials, products, tableArgs).Render(r.Context(), w)
+	err = templates.Index(r.Context(), materials, tableArgs).Render(r.Context(), w)
 	if err != nil {
 		slog.Error("can't render root page", "error", err, "where", "RootPage")
 		templates.InternalError("ошибка отображения главной страницы").Render(r.Context(), w)

@@ -3,7 +3,7 @@ package templates
 
 import (
 	"fmt"
-	
+
 	"github.com/s-588/BOMViewer/internal/models"
 )
 
@@ -12,20 +12,19 @@ templ FileManager(entityID int64, entityType string, files []models.File) {
 		<!-- File Upload Section - Updated for all file types -->
 		<div class="mb-4">
 			<h5>Загрузить файл</h5>
-			<form 
-				hx-post={ fmt.Sprintf("/%s/%d/upload-file", entityType, entityID) } 
+			<form
+				hx-post={ fmt.Sprintf("/%s/%d/upload-file", entityType, entityID) }
 				hx-encoding="multipart/form-data"
 				hx-target="#file-list-container"
 				class="mb-3"
 			>
 				<div class="input-group">
-					<input type="file" name="file" class="form-control" required>
+					<input type="file" name="file" class="form-control" required/>
 					<button type="submit" class="btn btn-primary">Загрузить</button>
 				</div>
 				<small class="form-text text-muted">Поддерживаемые форматы: изображения, PDF, DOC, DOCX и другие (макс. 10MB)</small>
 			</form>
 		</div>
-
 		<!-- Pinned Files Container - This is what HTMX will target -->
 		<div id="file-list-container">
 			@FileList(entityID, entityType, files)
@@ -44,15 +43,15 @@ templ FileList(entityID int64, entityType string, files []models.File) {
 						<div class="col-md-3 mb-3">
 							<div class="card shadow-sm file-card">
 								if file.FileType == "image" && file.ID > 0 {
-									<img 
-										src={ fmt.Sprintf("/files/preview/%d", file.ID) } 
-										class="card-img-top" 
+									<img
+										src={ fmt.Sprintf("/files/preview/%d", file.ID) }
+										class="card-img-top"
 										alt={ file.Name }
 										style="height: 200px; object-fit: cover; cursor: pointer;"
 										data-image-view="true"
 										data-image-src={ fmt.Sprintf("/files/preview/%d", file.ID) }
 										data-image-name={ file.Name }
-									>
+									/>
 								} else if file.ID > 0 && file.Name != "" {
 									<div class="card-body text-center py-5">
 										<!-- Show appropriate icon based on file type -->
@@ -69,18 +68,17 @@ templ FileList(entityID int64, entityType string, files []models.File) {
 								}
 								if file.ID > 0 {
 									<div class="card-body p-2 text-center">
-										<a 
-											href={ fmt.Sprintf("/files/%d", file.ID) } 
+										<a
+											href={ fmt.Sprintf("/files/%d", file.ID) }
 											class="btn btn-sm btn-outline-primary w-100 mb-1"
 											target="_blank"
 										>
 											Скачать
 										</a>
-										<button 
+										<button
 											class="btn btn-sm btn-outline-danger w-100"
 											hx-delete={ fmt.Sprintf("/%s/%d/files/%d", entityType, entityID, file.ID) }
-											hx-target="#file-list-container"
-											hx-confirm="Удалить файл?"
+											hx-target="#content"
 										>
 											Удалить
 										</button>
@@ -110,21 +108,21 @@ templ ProfilePicture(entityID int64, entityType string, profilePicture *models.F
 			<div class="text-center mb-4">
 				<h5>Основное изображение</h5>
 				<div class="position-relative d-inline-block">
-					<img 
-						src={ fmt.Sprintf("/files/preview/%d", profilePicture.ID) } 
+					<img
+						src={ fmt.Sprintf("/files/preview/%d", profilePicture.ID) }
 						class="img-fluid rounded shadow profile-image-main"
 						alt="Основное изображение"
 						style="max-height: 300px; cursor: pointer;"
 						data-image-view="true"
 						data-image-src={ fmt.Sprintf("/files/preview/%d", profilePicture.ID) }
 						data-image-name={ profilePicture.Name }
-					>
+					/>
 					<div class="mt-3">
-						<button 
+						<button
 							class="btn btn-sm btn-outline-danger me-2"
 							hx-post={ fmt.Sprintf("/%s/%d/remove-profile-picture", entityType, entityID) }
-							hx-target="#profile-picture-section"
-							hx-confirm="Удалить основное изображение?"
+							hx-target="#content"
+							hx-confirm="Удалить основное изображение?(оно останется в списке файлов)"
 						>
 							<i class="fas fa-times"></i> Удалить
 						</button>
@@ -134,13 +132,12 @@ templ ProfilePicture(entityID int64, entityType string, profilePicture *models.F
 			</div>
 		} else if len(availableImages) > 0 && hasValidImages(availableImages) {
 			<div class="text-center mb-4">
-				<h5>Основное изображение</h5>
-				<p class="text-muted">Не установлено</p>
-				<button 
+				<p class="text-muted">Изображение не установлено</p>
+				<button
 					class="btn btn-outline-primary btn-sm"
 					data-set-profile-picture="true"
 				>
-					<i class="fas fa-image"></i> Установить основное изображение
+					<i class="fas fa-image"></i> Выбрать
 				</button>
 			</div>
 		} else {
@@ -167,16 +164,16 @@ templ SetProfilePictureModal(entityID int64, entityType string, imageFiles []mod
 								if file.ID > 0 && file.Name != "" {
 									<div class="col-md-4 mb-3">
 										<div class="card h-100">
-											<img 
-												src={ fmt.Sprintf("/files/preview/%d", file.ID) } 
-												class="card-img-top" 
+											<img
+												src={ fmt.Sprintf("/files/preview/%d", file.ID) }
+												class="card-img-top"
 												alt={ file.Name }
 												style="height: 150px; object-fit: cover; cursor: pointer;"
 												data-profile-picture-choice="true"
 												data-entity-id={ fmt.Sprintf("%d", entityID) }
 												data-entity-type={ entityType }
 												data-file-id={ fmt.Sprintf("%d", file.ID) }
-											>
+											/>
 											<div class="card-body text-center">
 												<small class="text-muted">{ file.Name }</small>
 											</div>
@@ -218,14 +215,14 @@ func hasValidImages(files []models.File) bool {
 
 // New helper functions for file type detection
 func isDocument(mimeType string) bool {
-	return mimeType == "application/pdf" || 
-	       mimeType == "application/msword" || 
-	       mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	return mimeType == "application/pdf" ||
+		mimeType == "application/msword" ||
+		mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 }
 
 func isWordDocument(mimeType string) bool {
-	return mimeType == "application/msword" || 
-	       mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	return mimeType == "application/msword" ||
+		mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 }
 
 func getFileTypeDisplay(mimeType string) string {

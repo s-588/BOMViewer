@@ -46,6 +46,17 @@ func (q *Queries) DeleteAllMaterialNames(ctx context.Context, materialID int64) 
 	return err
 }
 
+const deleteAllMaterialProducts = `-- name: DeleteAllMaterialProducts :exec
+DELETE FROM product_materials
+WHERE
+    material_id = ?
+`
+
+func (q *Queries) DeleteAllMaterialProducts(ctx context.Context, materialID sql.NullInt64) error {
+	_, err := q.db.ExecContext(ctx, deleteAllMaterialProducts, materialID)
+	return err
+}
+
 const deleteMaterial = `-- name: DeleteMaterial :exec
 DELETE FROM materials
 WHERE
@@ -63,7 +74,7 @@ SELECT
     m.unit_id,
     m.description,
     ut.unit,
-    mn.name AS primary_name,
+    mn.name AS material_name,
     pm.quantity,
     pm.quantity_text,
     p.product_id,
@@ -72,7 +83,6 @@ FROM
     materials m
     INNER JOIN unit_types ut ON m.unit_id = ut.unit_id
     INNER JOIN material_names mn ON m.material_id = mn.material_id
-    AND mn.is_primary = TRUE
     LEFT JOIN product_materials pm ON m.material_id = pm.material_id
     LEFT JOIN products p ON pm.product_id = p.product_id
 ORDER BY
@@ -84,7 +94,7 @@ type GetAllMaterialsRow struct {
 	UnitID       int64
 	Description  sql.NullString
 	Unit         string
-	PrimaryName  string
+	MaterialName string
 	Quantity     interface{}
 	QuantityText sql.NullString
 	ProductID    sql.NullInt64
@@ -105,7 +115,74 @@ func (q *Queries) GetAllMaterials(ctx context.Context) ([]GetAllMaterialsRow, er
 			&i.UnitID,
 			&i.Description,
 			&i.Unit,
-			&i.PrimaryName,
+			&i.MaterialName,
+			&i.Quantity,
+			&i.QuantityText,
+			&i.ProductID,
+			&i.ProductName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllMaterialsWithPrimaryNames = `-- name: GetAllMaterialsWithPrimaryNames :many
+SELECT
+    m.material_id,
+    m.unit_id,
+    m.description,
+    ut.unit,
+    mn.name AS material_name,
+    pm.quantity,
+    pm.quantity_text,
+    p.product_id,
+    p.name AS product_name
+FROM
+    materials m
+    INNER JOIN unit_types ut ON m.unit_id = ut.unit_id
+    INNER JOIN material_names mn ON m.material_id = mn.material_id
+    and is_primary = TRUE
+    LEFT JOIN product_materials pm ON m.material_id = pm.material_id
+    LEFT JOIN products p ON pm.product_id = p.product_id
+ORDER BY
+    m.material_id
+`
+
+type GetAllMaterialsWithPrimaryNamesRow struct {
+	MaterialID   int64
+	UnitID       int64
+	Description  sql.NullString
+	Unit         string
+	MaterialName string
+	Quantity     interface{}
+	QuantityText sql.NullString
+	ProductID    sql.NullInt64
+	ProductName  sql.NullString
+}
+
+func (q *Queries) GetAllMaterialsWithPrimaryNames(ctx context.Context) ([]GetAllMaterialsWithPrimaryNamesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMaterialsWithPrimaryNames)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllMaterialsWithPrimaryNamesRow
+	for rows.Next() {
+		var i GetAllMaterialsWithPrimaryNamesRow
+		if err := rows.Scan(
+			&i.MaterialID,
+			&i.UnitID,
+			&i.Description,
+			&i.Unit,
+			&i.MaterialName,
 			&i.Quantity,
 			&i.QuantityText,
 			&i.ProductID,
@@ -126,13 +203,15 @@ func (q *Queries) GetAllMaterials(ctx context.Context) ([]GetAllMaterialsRow, er
 
 const getMaterialByID = `-- name: GetMaterialByID :one
 SELECT
-    materials.material_id, materials.unit_id, materials.description,
+    materials.material_id,
+    materials.unit_id,
+    materials.description,
     unit_types.unit AS unit,
     product_materials.quantity AS quantity
 FROM
     materials
-    inner join unit_types on materials.unit_id = unit_types.unit_id
-    inner join product_materials on product_materials.material_id = materials.material_id
+    INNER JOIN unit_types ON materials.unit_id = unit_types.unit_id
+    LEFT JOIN product_materials ON product_materials.material_id = materials.material_id
 WHERE
     materials.material_id = ?
 `
@@ -206,6 +285,8 @@ from
     material_names
 where
     material_id = ?
+ORDER BY
+    material_names.material_id
 `
 
 func (q *Queries) GetMaterialNames(ctx context.Context, materialID int64) ([]MaterialName, error) {

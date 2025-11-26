@@ -45,18 +45,48 @@ func (h *Handler) MaterialImageUploadHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Get updated file list and return the files section
-	files, err := h.db.GetMaterialFiles(r.Context(), materialID)
+	h.MaterialViewHandler(w, r)
+}
+
+func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Request) {
+	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("get material files error", "error", err, "where", "MaterialImageUploadHandler")
-		templates.InternalError("ошибка получения списка файлов").Render(r.Context(), w)
+		slog.Error("parse product id", "error", err, "where", "ProductFileUploadHandler")
+		templates.InternalError("ошибка обработки идентификатора продукта").Render(r.Context(), w)
 		return
 	}
 
-	err = templates.FileList(materialID, "material", files).Render(r.Context(), w)
+	// Handle file upload - using the same fileUpload service as materials
+	uploadedFile, err := h.fileUpload.HandleFileUpload(r, "file") // or "image" if you want to restrict to images
 	if err != nil {
-		slog.Error("can't render file list", "error", err, "where", "MaterialImageUploadHandler")
+		slog.Error("file upload error", "error", err, "where", "ProductFileUploadHandler")
+		templates.InternalError("ошибка загрузки файла: "+err.Error()).Render(r.Context(), w)
+		return
 	}
+
+	// Save file record to database
+	fileID, err := h.db.InsertFile(r.Context(), *uploadedFile)
+	if err != nil {
+		// Clean up uploaded file
+		h.fileUpload.DeleteFile(uploadedFile.Path)
+		slog.Error("insert file error", "error", err, "where", "ProductFileUploadHandler")
+		templates.InternalError("ошибка сохранения файла в базе данных").Render(r.Context(), w)
+		return
+	}
+
+	// Link file to product
+	err = h.db.InsertProductFile(r.Context(), productID, fileID)
+	if err != nil {
+		// Clean up uploaded file and database record
+		h.fileUpload.DeleteFile(uploadedFile.Path)
+		h.db.DeleteFile(r.Context(), fileID)
+		slog.Error("link file to product error", "error", err, "where", "ProductFileUploadHandler")
+		templates.InternalError("ошибка привязки файла к продукту").Render(r.Context(), w)
+		return
+	}
+
+	// Return updated product view
+	h.ProductViewHandler(w, r)
 }
 
 func (h *Handler) ProductImageUploadHandler(w http.ResponseWriter, r *http.Request) {

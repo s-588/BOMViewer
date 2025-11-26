@@ -4,7 +4,7 @@ SELECT
     m.unit_id,
     m.description,
     ut.unit,
-    mn.name AS primary_name,
+    mn.name AS material_name,
     pm.quantity,
     pm.quantity_text,
     p.product_id,
@@ -13,7 +13,27 @@ FROM
     materials m
     INNER JOIN unit_types ut ON m.unit_id = ut.unit_id
     INNER JOIN material_names mn ON m.material_id = mn.material_id
-    AND mn.is_primary = TRUE
+    LEFT JOIN product_materials pm ON m.material_id = pm.material_id
+    LEFT JOIN products p ON pm.product_id = p.product_id
+ORDER BY
+    m.material_id;
+
+-- name: GetAllMaterialsWithPrimaryNames :many
+SELECT
+    m.material_id,
+    m.unit_id,
+    m.description,
+    ut.unit,
+    mn.name AS material_name,
+    pm.quantity,
+    pm.quantity_text,
+    p.product_id,
+    p.name AS product_name
+FROM
+    materials m
+    INNER JOIN unit_types ut ON m.unit_id = ut.unit_id
+    INNER JOIN material_names mn ON m.material_id = mn.material_id
+    and is_primary = TRUE
     LEFT JOIN product_materials pm ON m.material_id = pm.material_id
     LEFT JOIN products p ON pm.product_id = p.product_id
 ORDER BY
@@ -25,7 +45,9 @@ select
 from
     material_names
 where
-    material_id = ?;
+    material_id = ?
+ORDER BY
+    material_names.material_id;
 
 -- name: InsertMaterial :one
 INSERT INTO
@@ -51,13 +73,15 @@ VALUES
 
 -- name: GetMaterialByID :one
 SELECT
-    materials.*,
+    materials.material_id,
+    materials.unit_id,
+    materials.description,
     unit_types.unit AS unit,
     product_materials.quantity AS quantity
 FROM
     materials
-    inner join unit_types on materials.unit_id = unit_types.unit_id
-    inner join product_materials on product_materials.material_id = materials.material_id
+    INNER JOIN unit_types ON materials.unit_id = unit_types.unit_id
+    LEFT JOIN product_materials ON product_materials.material_id = materials.material_id
 WHERE
     materials.material_id = ?;
 
@@ -148,3 +172,8 @@ from
     inner join unit_types ut on ut.unit_id = m.unit_id
 where
     name = ?;
+
+-- name: DeleteAllMaterialProducts :exec
+DELETE FROM product_materials
+WHERE
+    material_id = ?;

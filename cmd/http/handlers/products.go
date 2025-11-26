@@ -186,6 +186,20 @@ func (h *Handler) ProductViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ProductUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.Error("parse product id", "error", err, "where", "ProductUpdateHandler")
+		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		return
+	}
+
+	// Parse form first!
+	if err := r.ParseForm(); err != nil {
+		slog.Error("parse form", "error", err, "where", "ProductUpdateHandler")
+		templates.InternalError("ошибка обработки формы").Render(r.Context(), w)
+		return
+	}
+
 	product, err := getProductFromRequest(r)
 	if err != nil {
 		slog.Error("get product from request", "error", err, "where", "ProductUpdateHandler")
@@ -193,15 +207,33 @@ func (h *Handler) ProductUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update operations
 	if product.Name != "" {
-		h.db.UpdateProductName(r.Context(), product.ID, product.Name)
+		err = h.db.UpdateProductName(r.Context(), id, product.Name)
+		if err != nil {
+			slog.Error("update product name", "error", err, "where", "ProductUpdateHandler")
+			templates.InternalError("ошибка обновления имени продукта: "+err.Error()).Render(r.Context(), w)
+			return
+		}
 	}
 	if product.Description != "" {
-		h.db.UpdateProductDescription(r.Context(), product.ID, product.Description)
+		err = h.db.UpdateProductDescription(r.Context(), id, product.Description)
+		if err != nil {
+			slog.Error("update product description", "error", err, "where", "ProductUpdateHandler")
+			templates.InternalError("ошибка обновления описания продукта: "+err.Error()).Render(r.Context(), w)
+			return
+		}
 	}
 	if len(product.Materials) != 0 {
-		h.db.UpdateProductMaterials(r.Context(), product.ID, product.Materials)
+		err = h.db.UpdateProductMaterials(r.Context(), id, product.Materials)
+		if err != nil {
+			slog.Error("update product materials", "error", err, "where", "ProductUpdateHandler")
+			templates.InternalError("ошибка обновления материалов продукта: "+err.Error()).Render(r.Context(), w)
+			return
+		}
 	}
+
+	http.Redirect(w, r, fmt.Sprintf("/products/%d", id), http.StatusSeeOther)
 }
 
 func getProductFromRequest(r *http.Request) (models.Product, error) {
@@ -218,19 +250,18 @@ func getProductFromRequest(r *http.Request) (models.Product, error) {
 }
 
 func parseProductMaterials(r *http.Request) []models.Material {
-	r.ParseForm()
-	materialIDs := r.Form["material-ids"]
-	materialCounts := r.Form["material-counts"]
+	materialIDs := r.Form["material_ids"] // Changed from "material-ids"
+	materialsList := make([]models.Material, 0, len(materialIDs))
 
-	materialsList := make([]models.Material, 0)
-	for i := 0; i < len(materialIDs); i++ {
-		id, err := strconv.ParseInt(materialIDs[i], 10, 64)
+	for _, idStr := range materialIDs {
+		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			return materialsList
+			continue
 		}
+		quantity := r.FormValue(fmt.Sprintf("quantity_%d", id)) // This matches your form
 		materialsList = append(materialsList, models.Material{
 			ID:       id,
-			Quantity: materialCounts[i],
+			Quantity: quantity,
 		})
 	}
 	return materialsList
@@ -291,7 +322,13 @@ func (h *Handler) ProductDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		templates.InternalError("ошибка удаления продукта: "+err.Error()).Render(r.Context(), w)
 		return
 	}
-	http.Redirect(w, r, "/products", http.StatusSeeOther)
+
+	// For HTMX requests, return the updated table
+	if r.Header.Get("HX-Request") == "true" {
+		h.ProductTableHandler(w, r)
+	} else {
+		http.Redirect(w, r, "/products", http.StatusSeeOther)
+	}
 }
 
 func (h *Handler) ProductEditHandler(w http.ResponseWriter, r *http.Request) {
@@ -365,6 +402,7 @@ func (h *Handler) SetProductProfilePicture(w http.ResponseWriter, r *http.Reques
 		slog.Warn("cannot unset product profile picture", "error", err, "where", "SetProductProfilePicture")
 	}
 
+	// THE PROBLEM: This tries to insert a duplicate association
 	err = h.db.SetProductProfilePicture(r.Context(), productID, fileID)
 	if err != nil {
 		slog.Error("set product profile picture", "error", err)

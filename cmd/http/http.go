@@ -58,10 +58,10 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("GET /products/table", s.handler.ProductTableHandler)
 	s.mux.HandleFunc("POST /products", s.handler.ProductNewHandler)                              // create new product, return new list of products
 	s.mux.HandleFunc("GET /products/{id}", s.handler.ProductViewHandler)                         // return product by id
-	s.mux.HandleFunc("POST /products/{id}", s.handler.ProductNewHandler)                         // update product, return updated product
+	s.mux.HandleFunc("POST /products/{id}", s.handler.ProductUpdateHandler)                      // update product, return updated product
 	s.mux.HandleFunc("GET /products/{id}/materials", s.handler.ProductMaterialListHandler)       // return list of materials that used in this product
 	s.mux.HandleFunc("GET /products/{id}/files", s.handler.ProductFilesListHandler)              // return list of pinned files
-	s.mux.HandleFunc("POST /products/{id}/upload-file", s.handler.ProductCreateHandler)          // attach new file
+	s.mux.HandleFunc("POST /products/{id}/upload-file", s.handler.ProductFileUploadHandler)      // attach new file
 	s.mux.HandleFunc("DELETE /products/{id}/files/{fileID}", s.handler.ProductFileDeleteHandler) // delete file
 	s.mux.HandleFunc("DELETE /products/{id}", s.handler.ProductDeleteHandler)                    // delete material
 	s.mux.HandleFunc("GET /products/{id}/edit", s.handler.ProductEditHandler)                    // return form for editing product
@@ -69,7 +69,6 @@ func (s *Server) setupPaths() {
 
 	s.mux.HandleFunc("GET /files/{id}", s.handler.FileDownload)
 	s.mux.HandleFunc("GET /files/preview/{id}", s.handler.FilePreview)
-	// In http.go setupPaths()
 	s.mux.HandleFunc("POST /materials/{id}/set-profile-picture/{fileID}", s.handler.SetMaterialProfilePicture)
 	s.mux.HandleFunc("POST /products/{id}/set-profile-picture/{fileID}", s.handler.SetProductProfilePicture)
 	s.mux.HandleFunc("POST /materials/{id}/remove-profile-picture", s.handler.RemoveMaterialProfilePicture)

@@ -21,18 +21,18 @@ function initializeImageViewer() {
             e.preventDefault();
         }
         
-        // Handle profile picture selection in modal - FIXED THIS
-        if (e.target.matches('[data-profile-picture-choice]') || e.target.closest('[data-profile-picture-choice]')) {
-            const element = e.target.hasAttribute('data-profile-picture-choice') ? e.target : e.target.closest('[data-profile-picture-choice]');
-            const entityId = element.getAttribute('data-entity-id');
-            const entityType = element.getAttribute('data-entity-type');
-            const fileId = element.getAttribute('data-file-id');
-            
-            console.log('Setting profile picture:', { entityId, entityType, fileId });
-            setProfilePicture(entityId, entityType, fileId);
-            e.preventDefault();
-            e.stopPropagation(); // Important: prevent event from bubbling
-        }
+// In the profile picture choice handler, remove stopPropagation
+if (e.target.matches('[data-profile-picture-choice]') || e.target.closest('[data-profile-picture-choice]')) {
+    const element = e.target.hasAttribute('data-profile-picture-choice') ? e.target : e.target.closest('[data-profile-picture-choice]');
+    const entityId = element.getAttribute('data-entity-id');
+    const entityType = element.getAttribute('data-entity-type');
+    const fileId = element.getAttribute('data-file-id');
+    
+    console.log('Setting profile picture:', { entityId, entityType, fileId });
+    setProfilePicture(entityId, entityType, fileId);
+    e.preventDefault();
+    // REMOVED: e.stopPropagation();
+}
     });
 }
 
@@ -104,58 +104,10 @@ function setProfilePicture(entityId, entityType, fileId) {
         modal.hide();
     }
     
-    // Show loading state
-    const profilePictureSection = document.getElementById('profile-picture-section');
-    if (profilePictureSection) {
-        profilePictureSection.innerHTML = `
-            <div class="text-center">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Загрузка...</span>
-                </div>
-                <p class="mt-2">Установка основного изображения...</p>
-            </div>
-        `;
-    }
-    
-    // Send request to set profile picture
-    fetch(`/${entityType}/${entityId}/set-profile-picture/${fileId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => {
-        if (response.ok) {
-            // Success - reload the profile picture section
-            return fetch(`/${entityType}/${entityId}`);
-        } else {
-            throw new Error('Server returned error status: ' + response.status);
-        }
-    })
-    .then(response => response.text())
-    .then(html => {
-        // Extract just the profile picture section from the full page HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const newProfileSection = doc.getElementById('profile-picture-section');
-        
-        if (newProfileSection && profilePictureSection) {
-            profilePictureSection.innerHTML = newProfileSection.innerHTML;
-        } else {
-            // Fallback: reload the page
-            window.location.reload();
-        }
-    })
-    .catch(error => {
-        console.error('Error setting profile picture:', error);
-        if (profilePictureSection) {
-            profilePictureSection.innerHTML = `
-                <div class="alert alert-danger">
-                    Ошибка при установке основного изображения
-                    <button onclick="window.location.reload()" class="btn btn-sm btn-outline-secondary ms-2">Обновить</button>
-                </div>
-            `;
-        }
+    // Use HTMX directly instead of manual fetch
+    htmx.ajax('POST', `/${entityType}/${entityId}/set-profile-picture/${fileId}`, {
+        target: '#content',
+        swap: 'innerHTML'
     });
 }
 
