@@ -36,12 +36,13 @@ templ MainProductList(products []models.Product, args ProductTableArgs) {
 				<tbody>
 					for _, p := range products {
 						<tr
+						>
+							<td class="fw-semibold"
 							hx-get={ fmt.Sprintf("/products/%d", p.ID) }
 							hx-target="#content"
 							hx-push-url={ fmt.Sprintf("/products/%d", p.ID) }
 							style="cursor:pointer;"
-						>
-							<td class="fw-semibold">
+							>
 								<div class="d-flex align-items-center justify-content-between">
 									<span>{ p.Name }</span>
 									if p.Description != "" {

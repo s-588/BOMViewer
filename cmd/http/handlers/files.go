@@ -81,7 +81,7 @@ func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Reques
 		h.fileUpload.DeleteFile(uploadedFile.Path)
 		h.db.DeleteFile(r.Context(), fileID)
 		slog.Error("link file to product error", "error", err, "where", "ProductFileUploadHandler")
-		templates.InternalError("ошибка привязки файла к продукту").Render(r.Context(), w)
+		templates.InternalError("ошибка привязки файла к изделию").Render(r.Context(), w)
 		return
 	}
 

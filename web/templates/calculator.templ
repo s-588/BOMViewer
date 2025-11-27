@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/s-588/BOMViewer/internal/models"
+	"fmt"
 )
 
 templ CalculatorPage(products []models.Product, calculableResults []models.CalculationResult, nonCalculableMaterials []models.Material, desiredQuantity int64) {
@@ -19,7 +20,7 @@ templ CalculatorPage(products []models.Product, calculableResults []models.Calcu
 						<!-- Product Selection -->
 						<div class="row mb-4">
 							<div class="col-12">
-								<label class="form-label">Выберите продукт:</label>
+								<label class="form-label">Выберите изделие:</label>
 								<div class="row" id="productList">
 									for _, product := range products {
 										<div class="col-xl-3 col-lg-4 col-md-6 mb-3">
@@ -107,6 +108,8 @@ templ CalculatorResults(calculableResults []models.CalculationResult, nonCalcula
 							// Calculate overall production limit (bottleneck)
 							{{
 								
+								
+								
 	overallCanProduce := -1
 	for _, result := range calculableResults {
 		if result.IsCalculable {
@@ -167,7 +170,16 @@ templ CalculatorResults(calculableResults []models.CalculationResult, nonCalcula
 												<strong>{ result.MaterialName }</strong>
 												<small class="text-muted d-block">{ result.Unit }</small>
 											</td>
-											<td class="text-center">{ result.RequiredPerUnit }</td>
+											{{
+												var requiredPerUnit string
+												rpu, err := strconv.ParseFloat(result.RequiredPerUnit, 10)
+												if err != nil{
+													requiredPerUnit = result.RequiredPerUnit
+												}else{
+													requiredPerUnit = fmt.Sprintf("%.3f",rpu)
+												}
+											}}
+											<td class="text-center">{ requiredPerUnit }</td>
 											<td>
 												<input
 													type="number"
