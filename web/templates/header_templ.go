@@ -37,7 +37,7 @@ func header() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><a hx-get=\"/calculator\" hx-target=\"#content\" hx-push-url=\"/calculator\" class=\"btn btn-outline-light btn-sm \">Калькулятор материалов</a> <a hx-get=\"/materials?tab=materials\" hx-target=\"#content\" hx-push-url=\"/materials\" class=\"btn btn-outline-light btn-sm ms-2\">Материалы</a> <a hx-get=\"/products?tab=products\" hx-target=\"#content\" hx-push-url=\"/products\" class=\"btn btn-outline-light btn-sm ms-3\">Изделия</a></div></div></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><a hx-get=\"/calculator\" hx-target=\"#content\" hx-push-url=\"/calculator\" class=\"btn btn-outline-light btn-sm \">Калькулятор материалов</a> <a hx-get=\"/materials?tab=materials\" hx-target=\"#content\" hx-push-url=\"/materials\" class=\"btn btn-outline-light btn-sm ms-2\">Материалы</a> <a hx-get=\"/products?tab=products\" hx-target=\"#content\" hx-push-url=\"/products\" class=\"btn btn-outline-light btn-sm ms-2\">Изделия</a></div></div></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

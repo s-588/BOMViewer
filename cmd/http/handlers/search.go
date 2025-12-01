@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"github.com/s-588/BOMViewer/web/templates"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/s-588/BOMViewer/internal/helpers"
+	"github.com/s-588/BOMViewer/web/templates"
 )
 
 func (h *Handler) SearchHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,20 +27,20 @@ func (h *Handler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	case "materials":
 		_, err := h.db.SearchMaterials(r.Context(), q, limit)
 		if err != nil {
-			slog.Error("can't search materials", "error", err, "where", "SearchHandler")
-			templates.InternalError("ошибка поиска материалов").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка поиска материалов: "+err.Error(), err)
+			return
 		}
 	case "products":
 		_, err := h.db.SearchProducts(r.Context(), q, limit)
 		if err != nil {
-			slog.Error("can't search products", "error", err, "where", "SearchHandler")
-			templates.InternalError("ошибка поиска продуктов").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка поиска продуктов: "+err.Error(), err)
+			return
 		}
 	default:
 		materials, products, err := h.db.SearchAll(r.Context(), q, limit)
 		if err != nil {
-			slog.Error("can't search all", "error", err, "where", "SearchHandler")
-			templates.InternalError("ошибка поиска всего").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка поиска всего: "+err.Error(), err)
+			return
 		}
 
 		slog.Debug("search results:", "materials", materials, "products", products)

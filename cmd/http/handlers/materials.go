@@ -17,23 +17,20 @@ import (
 func (h *Handler) MaterialPageHandler(w http.ResponseWriter, r *http.Request) {
 	units, err := h.db.GetAllUnits(r.Context())
 	if err != nil {
-		slog.Error("can't get units", "error", err, "where", "MaterialPageHandler")
-		templates.InternalError("ошибка получения списка единиц измерения для фильтров").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка единиц измерения для фильтров", err)
 		return
 	}
 
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("can't get products", "error", err, "where", "MaterialPageHandler")
-		templates.InternalError("ошибка получения списка продуктов для фильтров").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка продуктов для фильтров", err)
 		return
 	}
 
 	// Get initial materials (unfiltered)
 	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
-		slog.Error("can't get materials", "error", err, "where", "MaterialPageHandler")
-		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка материалов", err)
 		return
 	}
 
@@ -75,15 +72,13 @@ func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
 	if primaryOnly {
 		allMaterials, err = h.db.GetAllMaterialsWithPrimaryNames(r.Context())
 		if err != nil {
-			slog.Error("can't get materials with primary name", "error", err, "where", "MaterialTableHandler")
-			templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка материалов", err)
 			return
 		}
 	} else {
 		allMaterials, err = h.db.GetAllMaterials(r.Context())
 		if err != nil {
-			slog.Error("can't get materials", "error", err, "where", "MaterialTableHandler")
-			templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка материалов", err)
 			return
 		}
 	}
@@ -100,15 +95,13 @@ func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
 
 	allUnits, err := h.db.GetAllUnits(r.Context())
 	if err != nil {
-		slog.Error("can't get units", "error", err, "where", "MaterialTableHandler")
-		templates.InternalError("ошибка получения списка единиц измерения для фильтров").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка единиц измерения для фильтров", err)
 		return
 	}
 
 	allProducts, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("can't get products", "error", err, "where", "MaterialTableHandler")
-		templates.InternalError("ошибка получения списка продуктов для фильтров").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка продуктов для фильтров", err)
 		return
 	}
 
@@ -137,26 +130,26 @@ func (h *Handler) MaterialTableHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		slog.Error("parse form error", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("ошибка обработки формы").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки формы", err)
 		return
 	}
 
-	primaryName := r.FormValue("primary_name")
-	names := r.Form["other_names"]
+	primaryName := r.FormValue("primary-name")
+	names := r.Form["other-names"]
 
 	// Debug form values
-	slog.Debug("form values", "primary_name", primaryName, "names", names,
-		"all_form", r.Form)
+	slog.Debug("form values", "all_form", r.Form, "primary name", primaryName, "names", names)
 
 	if primaryName == "" && len(names) == 0 {
-		templates.InternalError("хотя бы одно имя должно быть указано").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "хотя бы одно имя должно быть указано", errors.New("хотя бы одно имя должно быть указано"))
 		return
+	}
+	if !slices.Contains(names, primaryName) {
+		names = append(names, primaryName)
 	}
 
 	if err := validateNames(names); err != nil {
-		slog.Error("validate names", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("ошибка валидации имен: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка валидации имен: "+err.Error(), err)
 		return
 	}
 
@@ -172,15 +165,13 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 
 	unitID, err := strconv.ParseInt(r.FormValue("unit_id"), 10, 64)
 	if err != nil {
-		slog.Error("unit error", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("ошибка обработки единицы измерения").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "can't process unit id: "+err.Error(), errors.New("ошибка обработки единицы измерения"))
 		return
 	}
 
 	unit, err := h.db.GetUnitByID(r.Context(), unitID)
 	if err != nil {
-		slog.Error("unit error", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("единица измерения не существует").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "единица измерения не существует", err)
 		return
 	}
 
@@ -193,8 +184,7 @@ func (h *Handler) MaterialNewHandler(w http.ResponseWriter, r *http.Request) {
 
 	material, err = h.db.InsertMaterial(r.Context(), material)
 	if err != nil {
-		slog.Error("can't insert material", "error", err, "where", "MaterialNewHandler")
-		templates.InternalError("внутренняя ошибка при создании материала").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "внутренняя ошибка при создании материала", err)
 		return
 	}
 
@@ -260,15 +250,13 @@ func validateNames(names []string) error {
 func (h *Handler) MaterialViewHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialViewHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 
 	material, err := h.db.GetMaterialByID(r.Context(), id)
 	if err != nil {
-		slog.Error("get material by id", "error", err, "material_id", id, "where", "MaterialViewHandler")
-		templates.NotFoundError("материал не найден").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "материал не найден", err)
 		return
 	}
 
@@ -294,15 +282,13 @@ func (h *Handler) MaterialUpdateHandler(w http.ResponseWriter, r *http.Request) 
 	// Get material ID from URL
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialUpdateHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 
 	material, err := getMaterialFromRequest(r)
 	if err != nil {
-		slog.Error("get material from request", "error", err, "where", "MaterialUpdateHandler")
-		templates.InternalError("ошибка получения материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения материала", err)
 		return
 	}
 	material.ID = id // Set the ID from URL
@@ -399,14 +385,12 @@ func getMaterialFromRequest(r *http.Request) (models.Material, error) {
 func (h *Handler) MaterialFileListHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialFileListHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 	files, err := h.db.GetMaterialFiles(r.Context(), id)
 	if err != nil {
-		slog.Error("get material files", "error", err, "where", "MaterialFileListHandler")
-		templates.InternalError("ошибка получения файлов материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения файлов материала", err)
 		return
 	}
 	templates.FileList(id, "material", files).Render(r.Context(), w)
@@ -417,8 +401,7 @@ func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Reque
 
 	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialFileUploadHandler")
-		templates.InternalError("ошибка обработки идентификатора материала").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 	slog.Info("materialID", "id", materialID)
@@ -426,8 +409,7 @@ func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	// Handle file upload - now accepts any file type
 	uploadedFile, err := h.fileUpload.HandleFileUpload(r, "file")
 	if err != nil {
-		slog.Error("file upload error", "error", err, "where", "MaterialFileUploadHandler")
-		templates.InternalError("ошибка загрузки файла: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла", err)
 		return
 	}
 	slog.Info("file uploaded", "name", uploadedFile.Name, "path", uploadedFile.Path, "mime", uploadedFile.MimeType)
@@ -449,8 +431,7 @@ func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		// Clean up uploaded file
 		h.fileUpload.DeleteFile(uploadedFile.Path)
-		slog.Error("insert file error", "error", err, "where", "MaterialFileUploadHandler")
-		templates.InternalError("ошибка сохранения файла в базе данных").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", err)
 		return
 	}
 	slog.Info("file saved to database", "fileID", fileID)
@@ -461,8 +442,7 @@ func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Reque
 		// Clean up uploaded file and database record
 		h.fileUpload.DeleteFile(uploadedFile.Path)
 		h.db.DeleteFile(r.Context(), fileID)
-		slog.Error("link file to material error", "error", err, "where", "MaterialFileUploadHandler")
-		templates.InternalError("ошибка привязки файла к материалу").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к материалу", err)
 		return
 	}
 	slog.Info("file linked to material", "materialID", materialID, "fileID", fileID)
@@ -470,8 +450,7 @@ func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Reque
 	// Get updated file list and return the files section
 	files, err := h.db.GetMaterialFiles(r.Context(), materialID)
 	if err != nil {
-		slog.Error("get material files error", "error", err, "where", "MaterialFileUploadHandler")
-		templates.InternalError("ошибка получения списка файлов").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка файлов", err)
 		return
 	}
 	slog.Info("retrieved material files", "count", len(files))
@@ -485,15 +464,13 @@ func (h *Handler) MaterialFileUploadHandler(w http.ResponseWriter, r *http.Reque
 func (h *Handler) MaterialFileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialFileDeleteHandler")
-		templates.InternalError("ошибка обработки идентификатора материала").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 
 	fileID, err := strconv.ParseInt(r.PathValue("fileID"), 10, 64)
 	if err != nil {
-		slog.Error("parse file id", "error", err, "where", "MaterialFileDeleteHandler")
-		templates.InternalError("ошибка обработки идентификатора файла").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора файла", err)
 		return
 	}
 
@@ -512,16 +489,14 @@ func (h *Handler) MaterialFileDeleteHandler(w http.ResponseWriter, r *http.Reque
 	// Delete from database - this should handle both files_materials and files table due to CASCADE
 	err = h.db.DeleteFile(r.Context(), fileID)
 	if err != nil {
-		slog.Error("delete file error", "error", err, "where", "MaterialFileDeleteHandler")
-		templates.InternalError("ошибка удаления файла").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка удаления файла", err)
 		return
 	}
 
 	// Return updated file list - IMPORTANT: Return FileList template, not the full page
 	files, err := h.db.GetMaterialFiles(r.Context(), materialID)
 	if err != nil {
-		slog.Error("get material files error", "error", err, "where", "MaterialFileDeleteHandler")
-		templates.InternalError("ошибка получения списка файлов").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка файлов", err)
 		return
 	}
 
@@ -531,14 +506,12 @@ func (h *Handler) MaterialFileDeleteHandler(w http.ResponseWriter, r *http.Reque
 func (h *Handler) MaterialDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialDeleteHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 	err = h.db.DeleteMaterial(r.Context(), id)
 	if err != nil {
-		slog.Error("delete material", "error", err, "where", "MaterialDeleteHandler")
-		templates.InternalError("ошибка удаления материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка удаления материала", err)
 		return
 	}
 	http.Redirect(w, r, "/materials", http.StatusSeeOther)
@@ -547,29 +520,25 @@ func (h *Handler) MaterialDeleteHandler(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) MaterialEditHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialEditHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 
 	material, err := h.db.GetMaterialByID(r.Context(), id)
 	if err != nil {
-		slog.Error("get material by id", "error", err, "where", "MaterialEditHandler")
-		templates.InternalError("ошибка получения материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения материала", err)
 		return
 	}
 
 	units, err := h.db.GetAllUnits(r.Context())
 	if err != nil {
-		slog.Error("get all units", "error", err, "where", "MaterialEditHandler")
-		templates.InternalError("ошибка получения списка единиц измерения: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка единиц измерения", err)
 		return
 	}
 
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("get all products", "error", err, "where", "MaterialEditHandler")
-		templates.InternalError("ошибка получения списка продуктов: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка продуктов", err)
 		return
 	}
 	templates.MaterialForm(material, units, products, "edit").Render(r.Context(), w)
@@ -578,14 +547,12 @@ func (h *Handler) MaterialEditHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) MaterialCreateHandler(w http.ResponseWriter, r *http.Request) {
 	units, err := h.db.GetAllUnits(r.Context())
 	if err != nil {
-		slog.Error("get all units", "error", err, "where", "MaterialCreateHandler")
-		templates.InternalError("ошибка получения списка единиц измерения: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка единиц измерения", err)
 		return
 	}
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("get all products", "error", err, "where", "MaterialCreateHandler")
-		templates.InternalError("ошибка получения списка продуктов: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка продуктов", err)
 		return
 	}
 	templates.MaterialForm(models.Material{}, units, products, "new").Render(r.Context(), w)
@@ -657,15 +624,13 @@ func (h *Handler) SetMaterialProfilePicture(w http.ResponseWriter, r *http.Reque
 	// h.MaterialViewHandler(w, r)
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse material id", "error", err, "where", "MaterialViewHandler")
-		templates.InternalError("ошибка обработки идентификатора материала: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора материала", err)
 		return
 	}
 
 	material, err := h.db.GetMaterialByID(r.Context(), id)
 	if err != nil {
-		slog.Error("get material by id", "error", err, "material_id", id, "where", "MaterialViewHandler")
-		templates.NotFoundError("материал не найден").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения материала по идентификатору", err)
 		return
 	}
 

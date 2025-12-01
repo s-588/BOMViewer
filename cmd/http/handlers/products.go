@@ -21,8 +21,7 @@ func (h *Handler) ProductPageHandler(w http.ResponseWriter, r *http.Request) {
 	// Get all products WITH materials
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("get all products with materials", "error", err, "where", "ProductPageHandler")
-		templates.InternalError("ошибка получения списка продуктов: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка продуктов", err)
 		return
 	}
 
@@ -53,7 +52,7 @@ func (h *Handler) ProductPageHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ProductTableHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
-		templates.InternalError("ошибка обработки формы").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки формы", err)
 		return
 	}
 
@@ -62,8 +61,7 @@ func (h *Handler) ProductTableHandler(w http.ResponseWriter, r *http.Request) {
 	// Get all products WITH materials
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		slog.Error("get all products with materials", "error", err, "where", "ProductTableHandler")
-		templates.InternalError("ошибка получения списка продуктов").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка продуктов", err)
 		return
 	}
 
@@ -101,15 +99,13 @@ func (h *Handler) ProductNewHandler(w http.ResponseWriter, r *http.Request) {
 
 	name := r.FormValue("name")
 	if err := validateName(name); err != nil {
-		slog.Error("Invalid product name", "name", name)
-		templates.InternalError("ошибка обработки имени продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки имени продукта: "+err.Error(), err)
 		return
 	}
 
 	description := r.FormValue("description")
 	if err := validateDescription(description); err != nil {
-		slog.Error("Invalid product description", "error", err, "where", "ProductNewHandler")
-		templates.InternalError("ошибка обработки описания продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки описания продукта: "+err.Error(), err)
 		return
 	}
 
@@ -120,8 +116,7 @@ func (h *Handler) ProductNewHandler(w http.ResponseWriter, r *http.Request) {
 
 	productID, err := h.db.InsertProduct(r.Context(), product)
 	if err != nil {
-		slog.Error("can't insert new product", "name", name)
-		templates.InternalError("внутреняя ошибка").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "внутренняя ошибка при создании продукта", err)
 		return
 	}
 
@@ -129,15 +124,13 @@ func (h *Handler) ProductNewHandler(w http.ResponseWriter, r *http.Request) {
 	for _, idStr := range materialIDs {
 		materialID, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			slog.Error("can't parse material id", "name", name, "where", "ProductNewHandler")
-			templates.InternalError("внутреняя ошибка").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "внутренняя ошибка при обработке идентификатора материала", err)
 			return
 		}
 		quantity := r.FormValue(fmt.Sprintf("quantity_%d", materialID))
 		err = h.db.AddProductMaterial(r.Context(), productID, materialID, quantity)
 		if err != nil {
-			slog.Error("can't link newly created product to material", "name", name, "where", "ProductNewHandler")
-			templates.InternalError("внутреняя ошибка").Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "внутренняя ошибка при связывании продукта с материалом", err)
 			return
 		}
 	}
@@ -162,20 +155,17 @@ func validateDescription(description string) error {
 func (h *Handler) ProductViewHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductViewHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 	product, err := h.db.GetProductByID(r.Context(), id)
 	if err != nil {
-		slog.Error("get product by id", "error", err, "where", "ProductViewHandler")
-		templates.InternalError("ошибка получения продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения продукта: "+err.Error(), err)
 		return
 	}
 	files, err := h.db.GetProductFiles(r.Context(), id)
 	if err != nil {
-		slog.Error("get product files", "error", err, "where", "ProductViewHandler")
-		templates.InternalError("ошибка получения файлов продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения файлов продукта: "+err.Error(), err)
 		return
 	}
 	profilePicture, err := h.db.GetProductProfilePicture(r.Context(), id)
@@ -188,22 +178,19 @@ func (h *Handler) ProductViewHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ProductUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductUpdateHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 
 	// Parse form first!
 	if err := r.ParseForm(); err != nil {
-		slog.Error("parse form", "error", err, "where", "ProductUpdateHandler")
-		templates.InternalError("ошибка обработки формы").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки формы", err)
 		return
 	}
 
 	product, err := getProductFromRequest(r)
 	if err != nil {
-		slog.Error("get product from request", "error", err, "where", "ProductUpdateHandler")
-		templates.InternalError("ошибка получения продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения продукта: "+err.Error(), err)
 		return
 	}
 
@@ -211,24 +198,21 @@ func (h *Handler) ProductUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if product.Name != "" {
 		err = h.db.UpdateProductName(r.Context(), id, product.Name)
 		if err != nil {
-			slog.Error("update product name", "error", err, "where", "ProductUpdateHandler")
-			templates.InternalError("ошибка обновления имени продукта: "+err.Error()).Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обновления имени продукта: "+err.Error(), err)
 			return
 		}
 	}
 	if product.Description != "" {
 		err = h.db.UpdateProductDescription(r.Context(), id, product.Description)
 		if err != nil {
-			slog.Error("update product description", "error", err, "where", "ProductUpdateHandler")
-			templates.InternalError("ошибка обновления описания продукта: "+err.Error()).Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обновления описания продукта: "+err.Error(), err)
 			return
 		}
 	}
 	if len(product.Materials) != 0 {
 		err = h.db.UpdateProductMaterials(r.Context(), id, product.Materials)
 		if err != nil {
-			slog.Error("update product materials", "error", err, "where", "ProductUpdateHandler")
-			templates.InternalError("ошибка обновления материалов продукта: "+err.Error()).Render(r.Context(), w)
+			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обновления материалов продукта: "+err.Error(), err)
 			return
 		}
 	}
@@ -270,14 +254,12 @@ func parseProductMaterials(r *http.Request) []models.Material {
 func (h *Handler) ProductFilesListHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductFilesListHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 	files, err := h.db.GetProductFiles(r.Context(), id)
 	if err != nil {
-		slog.Error("get product files", "error", err, "where", "ProductFilesListHandler")
-		templates.InternalError("ошибка получения файлов продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения файлов продукта: "+err.Error(), err)
 		return
 	}
 	templates.FileList(id, "product", files).Render(r.Context(), w)
@@ -286,14 +268,12 @@ func (h *Handler) ProductFilesListHandler(w http.ResponseWriter, r *http.Request
 func (h *Handler) ProductFileCreateHandler(w http.ResponseWriter, r *http.Request) {
 	productID, err := strconv.ParseInt(r.PathValue("product-id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductFileCreateHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 	fileID, err := strconv.ParseInt(r.URL.Query()["file-id"][0], 10, 64)
 	if err != nil {
-		slog.Error("parse file id", "error", err, "where", "ProductFileCreateHandler")
-		templates.InternalError("ошибка обработки идентификатора файла: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора файла: "+err.Error(), err)
 		return
 	}
 	h.db.InsertProductFile(r.Context(), productID, fileID)
@@ -302,8 +282,7 @@ func (h *Handler) ProductFileCreateHandler(w http.ResponseWriter, r *http.Reques
 func (h *Handler) ProductFileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	fileID, err := strconv.ParseInt(r.PathValue("file-id"), 10, 64)
 	if err != nil {
-		slog.Error("parse file id", "error", err, "where", "ProductFileDeleteHandler")
-		templates.InternalError("ошибка обработки идентификатора файла: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора файла: "+err.Error(), err)
 		return
 	}
 	h.db.DeleteFile(r.Context(), fileID)
@@ -312,14 +291,12 @@ func (h *Handler) ProductFileDeleteHandler(w http.ResponseWriter, r *http.Reques
 func (h *Handler) ProductDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductDeleteHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 	err = h.db.DeleteProduct(r.Context(), id)
 	if err != nil {
-		slog.Error("delete product", "error", err, "where", "ProductDeleteHandler")
-		templates.InternalError("ошибка удаления продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка удаления продукта: "+err.Error(), err)
 		return
 	}
 
@@ -334,22 +311,19 @@ func (h *Handler) ProductDeleteHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ProductEditHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductEditHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 
 	product, err := h.db.GetProductByID(r.Context(), id)
 	if err != nil {
-		slog.Error("get product by id", "error", err, "where", "ProductEditHandler")
-		templates.InternalError("ошибка получения продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения продукта: "+err.Error(), err)
 		return
 	}
 
 	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
-		slog.Error("get all materials", "error", err, "where", "ProductEditHandler")
-		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка материалов: "+err.Error(), err)
 		return
 	}
 	templates.ProductForm(product, materials, "edit").Render(r.Context(), w)
@@ -358,8 +332,7 @@ func (h *Handler) ProductEditHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ProductCreateHandler(w http.ResponseWriter, r *http.Request) {
 	materials, err := h.db.GetAllMaterials(r.Context())
 	if err != nil {
-		slog.Error("get all materials", "error", err, "where", "ProductEditHandler")
-		templates.InternalError("ошибка получения списка материалов").Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка материалов: "+err.Error(), err)
 		return
 	}
 	templates.ProductForm(models.Product{}, materials, "new").Render(r.Context(), w)
@@ -368,14 +341,12 @@ func (h *Handler) ProductCreateHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ProductMaterialListHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		slog.Error("parse product id", "error", err, "where", "ProductMaterialListHandler")
-		templates.InternalError("ошибка обработки идентификатора продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки идентификатора продукта: "+err.Error(), err)
 		return
 	}
 	materials, err := h.db.GetProductMaterials(r.Context(), id)
 	if err != nil {
-		slog.Error("get product materials", "error", err, "where", "ProductMaterialListHandler")
-		templates.InternalError("ошибка получения материалов продукта: "+err.Error()).Render(r.Context(), w)
+		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения материалов продукта: "+err.Error(), err)
 		return
 	}
 	templates.MainMaterialPage(materials, templates.MaterialTableArgs{}).Render(r.Context(), w)

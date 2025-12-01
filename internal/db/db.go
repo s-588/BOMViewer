@@ -6,35 +6,37 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"strconv"
 
-	sqlite "github.com/s-588/BOMViewer/internal/db/generate"
+	db "github.com/s-588/BOMViewer/internal/db/generate"
 	"github.com/s-588/BOMViewer/internal/models"
 
-	sqlite3 "github.com/mattn/go-sqlite3"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 var (
-	ErrNotFound       = errors.New("not found")
-	ErrInternal       = errors.New("internal error")
-	ErrAlreadyExist   = errors.New("already exists")
-	ErrMustBeFilled   = errors.New("required field must be filled")
-	ErrIncorrectValue = errors.New("incorrect value provided")
+	ErrNotFound       = errors.New("ничего не найдено")
+	ErrInternal       = errors.New("внутреняя ошибка")
+	ErrAlreadyExist   = errors.New("такой объект уже существует")
+	ErrMustBeFilled   = errors.New("обязательные поля должны быть заполнены")
+	ErrIncorrectValue = errors.New("введено некоректное значение")
 )
 
 type Repository struct {
-	queries *sqlite.Queries
+	queries *db.Queries
 	db      *sql.DB
 }
 
 func NewRepository(ctx context.Context, connStr string) (*Repository, error) {
-	conn, err := sql.Open("sqlite3", connStr)
+	conn, err := sql.Open("sqlite", connStr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Repository{
-		queries: sqlite.New(conn),
+		queries: db.New(conn),
 		db:      conn,
 	}, conn.Ping()
 }
@@ -189,7 +191,7 @@ func (r *Repository) GetAllMaterialsWithPrimaryNames(ctx context.Context) ([]mod
 }
 
 func (r *Repository) InsertMaterial(ctx context.Context, material models.Material) (models.Material, error) {
-	materialRow, err := r.queries.InsertMaterial(ctx, sqlite.InsertMaterialParams{
+	materialRow, err := r.queries.InsertMaterial(ctx, db.InsertMaterialParams{
 		Unit: material.Unit.Name, // This might be the issue!
 		Description: sql.NullString{
 			String: material.Description,
@@ -202,7 +204,7 @@ func (r *Repository) InsertMaterial(ctx context.Context, material models.Materia
 	material.ID = materialRow.MaterialID
 
 	for _, name := range material.Names {
-		_, err = r.queries.InsertMaterialName(ctx, sqlite.InsertMaterialNameParams{
+		_, err = r.queries.InsertMaterialName(ctx, db.InsertMaterialNameParams{
 			MaterialID: materialRow.MaterialID,
 			Name:       name,
 			IsPrimary:  name == material.PrimaryName,
@@ -339,7 +341,7 @@ func (r *Repository) GetMaterialByName(ctx context.Context, name string) (models
 }
 
 func (r *Repository) UpdateMaterialUnit(ctx context.Context, id int64, unit string) error {
-	_, err := r.queries.UpdateMaterialUnit(ctx, sqlite.UpdateMaterialUnitParams{
+	_, err := r.queries.UpdateMaterialUnit(ctx, db.UpdateMaterialUnitParams{
 		MaterialID: id,
 		Unit:       unit,
 	})
@@ -352,7 +354,7 @@ func (r *Repository) UpdateMaterialNames(ctx context.Context, id int64, primaryN
 		return parseError(err)
 	}
 	for _, name := range names {
-		_, err := r.queries.InsertMaterialName(ctx, sqlite.InsertMaterialNameParams{
+		_, err := r.queries.InsertMaterialName(ctx, db.InsertMaterialNameParams{
 			MaterialID: id,
 			Name:       name,
 			IsPrimary:  name == primaryName,
@@ -413,7 +415,7 @@ func (r *Repository) GetMaterialFiles(ctx context.Context, id int64) ([]models.F
 }
 
 func (r *Repository) InsertMaterialFile(ctx context.Context, materialID, fileID int64) error {
-	_, err := r.queries.InsertMaterialFile(ctx, sqlite.InsertMaterialFileParams{
+	_, err := r.queries.InsertMaterialFile(ctx, db.InsertMaterialFileParams{
 		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 		FileID:     sql.NullInt64{Int64: fileID, Valid: true},
 	})
@@ -422,7 +424,7 @@ func (r *Repository) InsertMaterialFile(ctx context.Context, materialID, fileID 
 
 func (r *Repository) InsertFile(ctx context.Context, file models.File) (int64, error) {
 	fmt.Println(file)
-	fileRow, err := r.queries.InsertFile(ctx, sqlite.InsertFileParams{
+	fileRow, err := r.queries.InsertFile(ctx, db.InsertFileParams{
 		Name:     file.Name,
 		Path:     file.Path,
 		MimeType: file.MimeType,
@@ -523,7 +525,7 @@ func (r *Repository) GetAllProducts(ctx context.Context) ([]models.Product, erro
 }
 
 func (r *Repository) InsertProduct(ctx context.Context, product models.Product) (int64, error) {
-	row, err := r.queries.InsertProduct(ctx, sqlite.InsertProductParams{
+	row, err := r.queries.InsertProduct(ctx, db.InsertProductParams{
 		Name:        product.Name,
 		Description: sql.NullString{String: product.Description, Valid: true},
 	})
@@ -632,7 +634,7 @@ func (r *Repository) GetProductFiles(ctx context.Context, id int64) ([]models.Fi
 }
 
 func (r *Repository) InsertProductFile(ctx context.Context, fileID, productID int64) error {
-	_, err := r.queries.InsertProductFile(ctx, sqlite.InsertProductFileParams{
+	_, err := r.queries.InsertProductFile(ctx, db.InsertProductFileParams{
 		FileID:    sql.NullInt64{Int64: fileID, Valid: true},
 		ProductID: sql.NullInt64{Int64: productID, Valid: true},
 	})
@@ -640,7 +642,7 @@ func (r *Repository) InsertProductFile(ctx context.Context, fileID, productID in
 }
 
 func (r *Repository) DeleteProductFile(ctx context.Context, productID, fileID int64) error {
-	err := r.queries.DeleteProductFile(ctx, sqlite.DeleteProductFileParams{
+	err := r.queries.DeleteProductFile(ctx, db.DeleteProductFileParams{
 		ProductID: sql.NullInt64{Int64: productID, Valid: true},
 		FileID:    sql.NullInt64{Int64: fileID, Valid: true},
 	})
@@ -648,7 +650,7 @@ func (r *Repository) DeleteProductFile(ctx context.Context, productID, fileID in
 }
 
 func (r *Repository) AddProductMaterial(ctx context.Context, productID, materialID int64, quantity string) error {
-	req := sqlite.AddProductMaterialParams{
+	req := db.AddProductMaterialParams{
 		ProductID:  sql.NullInt64{Int64: productID, Valid: true},
 		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 	}
@@ -668,7 +670,7 @@ func (r *Repository) AddProductMaterial(ctx context.Context, productID, material
 }
 
 func (r *Repository) DeleteProductMaterial(ctx context.Context, productID, materialID int64) error {
-	err := r.queries.DeleteProductMaterial(ctx, sqlite.DeleteProductMaterialParams{
+	err := r.queries.DeleteProductMaterial(ctx, db.DeleteProductMaterialParams{
 		ProductID:  sql.NullInt64{Int64: productID, Valid: true},
 		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 	})
@@ -676,7 +678,7 @@ func (r *Repository) DeleteProductMaterial(ctx context.Context, productID, mater
 }
 
 func (r *Repository) UpdateMaterialDescription(ctx context.Context, materialID int64, description string) error {
-	_, err := r.queries.UpdateMaterialDescription(ctx, sqlite.UpdateMaterialDescriptionParams{
+	_, err := r.queries.UpdateMaterialDescription(ctx, db.UpdateMaterialDescriptionParams{
 		MaterialID:  materialID,
 		Description: sql.NullString{String: description, Valid: true},
 	})
@@ -684,29 +686,31 @@ func (r *Repository) UpdateMaterialDescription(ctx context.Context, materialID i
 }
 
 func parseError(err error) error {
-	if err != nil {
-		slog.Debug("database error", "error", err)
-	}
-	switch {
-	case err == nil:
+	if err == nil {
 		return nil
-	case errors.Is(err, sql.ErrNoRows):
-		return ErrNotFound
-	case errors.Is(err, sqlite3.ErrConstraintForeignKey):
-		return ErrNotFound
-	case errors.Is(err, sqlite3.ErrConstraintUnique):
-		return ErrAlreadyExist
-	case errors.Is(err, sqlite3.ErrConstraintNotNull):
-		return ErrMustBeFilled
-	case errors.Is(err, sqlite3.ErrConstraintCheck):
-		return ErrIncorrectValue
-	default:
-		return ErrInternal
 	}
+	slog.Debug("parsing database error", "error type", reflect.TypeOf(err), "error", err)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	var sqliteError *sqlite.Error
+	if errors.As(err, &sqliteError) {
+		switch sqliteError.Code() {
+		case sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY:
+			return ErrNotFound
+		case sqlite3.SQLITE_CONSTRAINT_UNIQUE:
+			return ErrAlreadyExist
+		case sqlite3.SQLITE_CONSTRAINT_NOTNULL:
+			return ErrMustBeFilled
+		case sqlite3.SQLITE_CONSTRAINT_CHECK:
+			return ErrIncorrectValue
+		}
+	}
+	return ErrInternal
 }
 
 func (r *Repository) UpdateProductName(ctx context.Context, id int64, name string) error {
-	err := r.queries.UpdateProductName(ctx, sqlite.UpdateProductNameParams{
+	err := r.queries.UpdateProductName(ctx, db.UpdateProductNameParams{
 		ProductID: id,
 		Name:      name,
 	})
@@ -714,7 +718,7 @@ func (r *Repository) UpdateProductName(ctx context.Context, id int64, name strin
 }
 
 func (r *Repository) UpdateProductDescription(ctx context.Context, d int64, description string) error {
-	err := r.queries.UpdateProductDescription(ctx, sqlite.UpdateProductDescriptionParams{
+	err := r.queries.UpdateProductDescription(ctx, db.UpdateProductDescriptionParams{
 		ProductID:   d,
 		Description: sql.NullString{String: description, Valid: true},
 	})
@@ -745,7 +749,7 @@ func (r *Repository) GetUnitByID(ctx context.Context, id int64) (models.Unit, er
 }
 
 func (r *Repository) SearchAll(ctx context.Context, q string, limit int64) ([]models.Material, []models.Product, error) {
-	result, err := r.queries.SearchAll(ctx, sqlite.SearchAllParams{
+	result, err := r.queries.SearchAll(ctx, db.SearchAllParams{
 		Text:  q,
 		Limit: limit,
 	})
@@ -782,7 +786,7 @@ func (r *Repository) SearchAll(ctx context.Context, q string, limit int64) ([]mo
 }
 
 func (r *Repository) SearchMaterials(ctx context.Context, q string, limit int64) ([]models.Material, error) {
-	result, err := r.queries.SearchMaterials(ctx, sqlite.SearchMaterialsParams{
+	result, err := r.queries.SearchMaterials(ctx, db.SearchMaterialsParams{
 		Query: q,
 		Limit: limit,
 	})
@@ -813,7 +817,7 @@ func (r *Repository) SearchMaterials(ctx context.Context, q string, limit int64)
 }
 
 func (r *Repository) SearchProducts(ctx context.Context, q string, limit int64) ([]models.Product, error) {
-	result, err := r.queries.SearchProducts(ctx, sqlite.SearchProductsParams{
+	result, err := r.queries.SearchProducts(ctx, db.SearchProductsParams{
 		Text:  q,
 		Limit: limit,
 	})
@@ -860,7 +864,7 @@ func (r *Repository) GetProductProfilePicture(ctx context.Context, id int64) (mo
 }
 
 func (r *Repository) DeleteMaterialFile(ctx context.Context, materialID, fileID int64) error {
-	return parseError(r.queries.DeleteMaterialFile(ctx, sqlite.DeleteMaterialFileParams{
+	return parseError(r.queries.DeleteMaterialFile(ctx, db.DeleteMaterialFileParams{
 		FileID:     sql.NullInt64{Int64: fileID, Valid: true},
 		MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 	}))
@@ -896,7 +900,7 @@ func (r *Repository) SetProductProfilePicture(ctx context.Context, productID, fi
 
 	// Only insert if not already associated
 	if !fileAlreadyAssociated {
-		_, err = r.queries.InsertProductFile(ctx, sqlite.InsertProductFileParams{
+		_, err = r.queries.InsertProductFile(ctx, db.InsertProductFileParams{
 			ProductID: sql.NullInt64{Int64: productID, Valid: true},
 			FileID:    sql.NullInt64{Int64: fileID, Valid: true},
 		})
@@ -960,7 +964,7 @@ func (r *Repository) UpdateMaterialProducts(ctx context.Context, materialID int6
 	}
 
 	for _, product := range productIDs {
-		args := sqlite.AddProductMaterialParams{
+		args := db.AddProductMaterialParams{
 			ProductID:  sql.NullInt64{Int64: product.ID, Valid: true},
 			MaterialID: sql.NullInt64{Int64: materialID, Valid: true},
 		}
@@ -979,7 +983,7 @@ func (r *Repository) UpdateMaterialProducts(ctx context.Context, materialID int6
 
 // UpdateProduct updates a product's basic information
 func (r *Repository) UpdateProduct(ctx context.Context, id int64, name, description string) error {
-	err := r.queries.UpdateProductName(ctx, sqlite.UpdateProductNameParams{
+	err := r.queries.UpdateProductName(ctx, db.UpdateProductNameParams{
 		ProductID: id,
 		Name:      name,
 	})
@@ -987,7 +991,7 @@ func (r *Repository) UpdateProduct(ctx context.Context, id int64, name, descript
 		return parseError(err)
 	}
 
-	err = r.queries.UpdateProductDescription(ctx, sqlite.UpdateProductDescriptionParams{
+	err = r.queries.UpdateProductDescription(ctx, db.UpdateProductDescriptionParams{
 		ProductID:   id,
 		Description: sql.NullString{String: description, Valid: description != ""},
 	})
@@ -1004,7 +1008,7 @@ func (r *Repository) UpdateProductMaterials(ctx context.Context, productID int64
 
 	// Add new material associations
 	for _, material := range materials {
-		args := sqlite.AddProductMaterialParams{
+		args := db.AddProductMaterialParams{
 			ProductID:  sql.NullInt64{Int64: productID, Valid: true},
 			MaterialID: sql.NullInt64{Int64: material.ID, Valid: true},
 		}

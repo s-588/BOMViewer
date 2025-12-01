@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"os"
 	"os/exec"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 const port = ":8080"
 
 func main() {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     slog.LevelDebug,
+	})))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
