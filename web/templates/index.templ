@@ -15,6 +15,7 @@ templ Index(ctx context.Context, materials []models.Material, tableArgs Material
 			<title>App title</title>
 			<link rel="stylesheet" href="/static/css/style.css"/>
 			<link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
+			<script src="/static/js/bootstrap.bundle.min.js"></script>
 		</head>
 		<body class="bg-light">
 			@header()
@@ -24,9 +25,7 @@ templ Index(ctx context.Context, materials []models.Material, tableArgs Material
 			</div>
 			<div id="modal-container"></div>
 		</body>
-		<script src="/static/js/exit.js"></script>
 		<script src="/static/js/image-viewer.js"></script>
-		<script src="/static/js/bootstrap.bundle.min.js"></script>
 		<script src="/static/js/htmx.min.js"></script>
 		<script>
 document.body.addEventListener("htmx:responseError", function (e) {
@@ -78,6 +77,24 @@ function getIcon(type) {
     }
 }
 
+</script>
+		<script>
+        // Initialize popovers after DOM loads
+        document.addEventListener('DOMContentLoaded', function () {
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
+            });
+        });
+    </script>
+		<script>
+// Reinitialize Bootstrap components after HTMX swaps
+document.body.addEventListener('htmx:afterSwap', function() {
+    // Popovers
+    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        new bootstrap.Popover(el); // Bootstrap handles duplicates automatically in v5+
+    });
+});
 </script>
 	</html>
 }

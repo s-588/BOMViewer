@@ -14,6 +14,9 @@ templ FileCard(file models.File) {
 					
 					
 					
+					
+					
+					
 				separated := strings.Split(file.Name, ".")
 				name := separated[0]
 				ext := separated[1]
@@ -59,13 +62,13 @@ templ ConfirmModal(id, title, message, action string) {
 }
 
 templ HoverDescriptionButton(text string) {
-	<span
-		class="badge bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center"
-		style="width: 20px; height: 20px; cursor: help; font-size: 0.7rem;"
-		data-bs-toggle="tooltip"
-		data-bs-placement="top"
-		title={ text }
+	<button
+		class="btn btn-outline-info btn-sm"
+		type="button"
+		data-bs-toggle="popover"
+		data-bs-trigger="hover focus"
+		data-bs-content={ text }
 	>
 		?
-	</span>
+	</button>
 }

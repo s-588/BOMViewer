@@ -34,11 +34,13 @@ templ MainMaterialList(materials []models.Material, args MaterialTableArgs) {
 										hx-target="#content"
 										hx-push-url={ fmt.Sprintf("/materials/%d", m.ID) }
 									>
-										<div class="d-flex align-items-center justify-content-between">
+										<div class="d-flex align-items-center justify-content-left">
 											<span>{ name }</span>
-											if m.Description != "" {
-												@HoverDescriptionButton(m.Description)
-											}
+											<div class="ms-2">
+												if m.Description != "" {
+													@HoverDescriptionButton(m.Description)
+												}
+											</div>
 										</div>
 									</td>
 									<td>
@@ -476,6 +478,7 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 						for _, p := range products {
 							{{
 								
+								
 							isChecked := false
 							quantityValue := ""
 							}}
@@ -483,6 +486,7 @@ templ MaterialForm(material models.Material, units []models.Unit, products []mod
 							for _, connectedProduct := range material.Products {
 								if connectedProduct.ID == p.ID {
 									{{
+										
 										
 									isChecked = true
 									quantityValue = connectedProduct.Quantity

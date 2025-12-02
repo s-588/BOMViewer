@@ -8,7 +8,7 @@ import (
 
 templ MainProductPage(products []models.Product, args ProductTableArgs) {
 	<div class="d-flex justify-content-between align-items-center mb-3">
-		<h2>Продукты</h2>
+		<h2>Изделия</h2>
 		<button
 			hx-push-url="/products/new"
 			class="btn btn-primary"
@@ -35,19 +35,21 @@ templ MainProductList(products []models.Product, args ProductTableArgs) {
 				</thead>
 				<tbody>
 					for _, p := range products {
-						<tr
-						>
-							<td class="fw-semibold"
-							hx-get={ fmt.Sprintf("/products/%d", p.ID) }
-							hx-target="#content"
-							hx-push-url={ fmt.Sprintf("/products/%d", p.ID) }
-							style="cursor:pointer;"
+						<tr>
+							<td
+								class="fw-semibold"
+								hx-get={ fmt.Sprintf("/products/%d", p.ID) }
+								hx-target="#content"
+								hx-push-url={ fmt.Sprintf("/products/%d", p.ID) }
+								style="cursor:pointer;"
 							>
-								<div class="d-flex align-items-center justify-content-between">
+								<div class="d-flex align-items-center justify-content-left">
 									<span>{ p.Name }</span>
-									if p.Description != "" {
-										@HoverDescriptionButton(p.Description)
-									}
+									<div class="ms-2">
+										if p.Description != "" {
+											@HoverDescriptionButton(p.Description)
+										}
+									</div>
 								</div>
 							</td>
 							<td>
