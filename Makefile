@@ -41,6 +41,7 @@ run: build  ## Build and run the application
 	./$(BUILD_DIR)/$(BINARY_NAME)
 
 fmt:  ## Format Go code
+	templ fmt
 	go fmt ./...
 	go mod tidy
 
@@ -51,3 +52,6 @@ clean:
 	go clean -cache
 	go clean -modcache
 	go clean -testcache
+	
+develop:
+	templ generate --watch & air --build.cmd "make run" 
