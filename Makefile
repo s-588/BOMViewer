@@ -41,7 +41,7 @@ run: build  ## Build and run the application
 	./$(BUILD_DIR)/$(BINARY_NAME)
 
 fmt:  ## Format Go code
-	templ fmt
+	templ fmt ./...
 	go fmt ./...
 	go mod tidy
 
