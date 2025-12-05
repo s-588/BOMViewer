@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -123,7 +124,8 @@ func (cfg *Config) setDefaults() bool {
 	}
 
 	if cfg.LogFile == "" {
-		cfg.LogFile = filepath.Join(cfg.DataDir, fmt.Sprintf("%s_log.log", time.Now().Format(time.DateTime)))
+		cfg.LogFile = filepath.Join(cfg.DataDir, fmt.Sprintf("%s_log.log",
+			strings.ReplaceAll(time.Now().Format(time.DateTime), ":", "-")))
 		changed = true
 	}
 
