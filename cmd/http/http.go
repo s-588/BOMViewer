@@ -2,11 +2,19 @@ package http
 
 import (
 	"context"
+	"embed"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 
 	"github.com/s-588/BOMViewer/cmd/http/handlers"
 	"github.com/s-588/BOMViewer/internal/db"
+)
+
+var (
+	//go:embed static/*
+	embededStaticFiles embed.FS
 )
 
 type Server struct {
@@ -14,10 +22,10 @@ type Server struct {
 	mux     *http.ServeMux
 	cancel  context.CancelFunc
 	handler *handlers.Handler
-	Port    string
+	Port    int
 }
 
-func NewServer(cancel context.CancelFunc, port string, repo *db.Repository) *Server {
+func NewServer(cancel context.CancelFunc, port int, repo *db.Repository) *Server {
 	return &Server{
 		cancel:  cancel,
 		handler: handlers.NewHandler(repo),
@@ -26,17 +34,26 @@ func NewServer(cancel context.CancelFunc, port string, repo *db.Repository) *Ser
 	}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start() (int, error) {
 	s.setupPaths()
-	slog.Info("starting listening on port", "port", s.Port)
-	return http.ListenAndServe(s.Port, s.mux)
+
+	port := fmt.Sprintf(":%d", s.Port)
+	ls, err := net.Listen("tcp", port)
+	if err != nil{
+		return 0,err
+	}
+	s.Port = ls.Addr().(*net.TCPAddr).Port
+	slog.Info("starting listening", "port", s.Port)
+
+	err = http.Serve(ls, s.mux)
+	return s.Port, err
 }
 
 func (s *Server) setupPaths() {
 	slog.Info("setting up server endpoints")
 
 	s.mux.HandleFunc("/", s.handler.RootPage)
-	s.mux.Handle("/static/", http.FileServer(http.Dir("web/")))
+	s.mux.Handle("/static/", http.FileServer(http.FS(embededStaticFiles)))
 	s.mux.HandleFunc("/exit", s.stop)
 
 	s.mux.HandleFunc("GET /search", s.handler.SearchHandler)                                       // return list of materials with checkboxes for forms
