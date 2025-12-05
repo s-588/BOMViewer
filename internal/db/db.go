@@ -3,12 +3,14 @@ package db
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
 	"strconv"
 
+	"github.com/pressly/goose/v3"
 	db "github.com/s-588/BOMViewer/internal/db/generate"
 	"github.com/s-588/BOMViewer/internal/models"
 
@@ -22,6 +24,9 @@ var (
 	ErrAlreadyExist   = errors.New("такой объект уже существует")
 	ErrMustBeFilled   = errors.New("обязательные поля должны быть заполнены")
 	ErrIncorrectValue = errors.New("введено некоректное значение")
+
+	//go:embed sql/migrations/*.sql
+	embededMigrations embed.FS
 )
 
 type Repository struct {
@@ -34,11 +39,30 @@ func NewRepository(ctx context.Context, connStr string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return &Repository{
+	if err := conn.Ping(); err != nil {
+		return nil, fmt.Errorf("can't ping db: %w", err)
+	}
+	r := &Repository{
 		queries: db.New(conn),
 		db:      conn,
-	}, conn.Ping()
+	}
+	err = r.initDB()
+	if err != nil {
+		return nil, fmt.Errorf("can't initialize db: %w", err)
+	}
+
+	return r, conn.Ping()
+}
+
+func (r *Repository) initDB() error {
+	goose.SetBaseFS(embededMigrations)
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
+	if err := goose.Up(r.db, "sql/migrations"); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close function close database connection and assumed to call it before app stop.
