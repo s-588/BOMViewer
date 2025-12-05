@@ -34,19 +34,19 @@ func NewServer(cancel context.CancelFunc, port int, repo *db.Repository) *Server
 	}
 }
 
-func (s *Server) Start() (int, error) {
+func (s *Server) Start(portChan chan int) error {
 	s.setupPaths()
 
 	port := fmt.Sprintf(":%d", s.Port)
 	ls, err := net.Listen("tcp", port)
-	if err != nil{
-		return 0,err
+	if err != nil {
+		return err
 	}
 	s.Port = ls.Addr().(*net.TCPAddr).Port
 	slog.Info("starting listening", "port", s.Port)
+	portChan <- s.Port
 
-	err = http.Serve(ls, s.mux)
-	return s.Port, err
+	return http.Serve(ls, s.mux)
 }
 
 func (s *Server) setupPaths() {

@@ -3,7 +3,6 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/s-588/BOMViewer/internal/db"
 	"github.com/s-588/BOMViewer/internal/helpers"
@@ -53,7 +52,6 @@ func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewHandler(db *db.Repository) *Handler {
-	os.MkdirAll("uploads", 0755)
 	return &Handler{
 		db:         db,
 		fileUpload: helpers.NewFileUploadConfig("uploads"),

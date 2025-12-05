@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"reflect"
 	"strconv"
 
 	"github.com/pressly/goose/v3"
+	"github.com/s-588/BOMViewer/cmd/config"
 	db "github.com/s-588/BOMViewer/internal/db/generate"
 	"github.com/s-588/BOMViewer/internal/models"
 
@@ -34,7 +36,8 @@ type Repository struct {
 	db      *sql.DB
 }
 
-func NewRepository(ctx context.Context, connStr string) (*Repository, error) {
+func NewRepository(ctx context.Context, cfg config.Config) (*Repository, error) {
+	connStr := filepath.Join(cfg.BaseDirectory, cfg.DBCfg.DBName)
 	conn, err := sql.Open("sqlite", connStr)
 	if err != nil {
 		return nil, err

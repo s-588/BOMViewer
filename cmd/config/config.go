@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -16,31 +13,31 @@ const (
 )
 
 // Default folder structure of compiled program will be look like this
-// data/
-// 		santex.db
+// binary
+// config.yaml
+// base_directory/
+// 		database_name.db
 // 		uploads/
 
 type Config struct {
-	DataDir string `yaml:"DataDirectory,omitempty"`
-	ServerConfig
-	DBConfig
-	LogConfig
+	BaseDirectory string `yaml:"base_directory,omitempty"`
+	ServerCfg ServerConfig `yaml:"server,omitempty"`
+	DBCfg DBConfig `yaml:"database,omitempty"`
+	LogCfg LogConfig `yaml:"log,omitempty"`
 }
 
 type LogConfig struct {
-	LogFile  string `yaml:"LogFile,omitempty"`
-	LogLevel string `yaml:"LogLevel,omitempty"`
+	LogLevel string `yaml:"log_level,omitempty"`
 }
 
 type ServerConfig struct {
 	// ServerPort is a port where server is running. Default is 0 and port is choosing by OS.
-	ServerPort int    `yaml:"ServerPort,omitempty"`
-	UploadsDir string `yaml:"UploadsDirectory,omitempty"`
+	ServerPort int    `yaml:"server_port,omitempty"`
+	UploadsDir string `yaml:"uploads_directory,omitempty"`
 }
 
 type DBConfig struct {
-	DBName string `yaml:"DatabaseName,omitempty"`
-	DBPath string `yaml:"DatabasePath,omitempty"`
+	DBName string `yaml:"database_name,omitempty"`
 }
 
 func NewConfig(cfgPath string) (Config, error) {
@@ -103,34 +100,23 @@ func setupConfigFile(cfgPath string) (*os.File, error) {
 
 func (cfg *Config) setDefaults() bool {
 	var changed bool
-	if cfg.DataDir == "" {
-		cfg.DataDir = "data"
+	if cfg.BaseDirectory == "" {
+		cfg.BaseDirectory = "data"
 		changed = true
 	}
 
-	if cfg.DBName == "" {
-		cfg.DBName = "database.db"
+	if cfg.DBCfg.DBName == "" {
+		cfg.DBCfg.DBName = "database.db"
 		changed = true
 	}
 
-	if cfg.DBPath == "" {
-		cfg.DBPath = filepath.Join(cfg.DataDir, cfg.DBName)
+	if cfg.ServerCfg.UploadsDir == "" {
+		cfg.ServerCfg.UploadsDir = "uploads"
 		changed = true
 	}
 
-	if cfg.UploadsDir == "" {
-		cfg.UploadsDir = filepath.Join(cfg.DataDir, "uploads")
-		changed = true
-	}
-
-	if cfg.LogFile == "" {
-		cfg.LogFile = filepath.Join(cfg.DataDir, fmt.Sprintf("%s_log.log",
-			strings.ReplaceAll(time.Now().Format(time.DateTime), ":", "-")))
-		changed = true
-	}
-
-	if cfg.LogLevel == "" {
-		cfg.LogLevel = "INFO"
+	if cfg.LogCfg.LogLevel == "" {
+		cfg.LogCfg.LogLevel = "INFO"
 		changed = true
 	}
 
