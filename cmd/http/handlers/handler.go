@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/s-588/BOMViewer/cmd/config"
 	"github.com/s-588/BOMViewer/internal/db"
 	"github.com/s-588/BOMViewer/internal/helpers"
 	"github.com/s-588/BOMViewer/web/templates"
@@ -12,6 +13,7 @@ import (
 type Handler struct {
 	db         *db.Repository
 	fileUpload *helpers.FileUploadConfig
+	cfg        config.Config
 }
 
 func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
@@ -51,9 +53,10 @@ func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewHandler(db *db.Repository) *Handler {
+func NewHandler(db *db.Repository, cfg config.Config) *Handler {
 	return &Handler{
 		db:         db,
 		fileUpload: helpers.NewFileUploadConfig("uploads"),
+		cfg:        cfg,
 	}
 }

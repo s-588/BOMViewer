@@ -1,0 +1,177 @@
+package templates
+
+import "github.com/s-588/BOMViewer/cmd/config"
+
+templ SettingsForm(config config.Config) {
+	<form hx-post="/config" hx-target="#settings-message" hx-swap="outerHTML">
+		<div class="card shadow-sm mb-4">
+			<div class="card-header bg-primary text-white">
+				<h5 class="mb-0"><i class="fas fa-folder me-2"></i>Базовые настройки</h5>
+			</div>
+			<div class="card-body">
+				<div class="mb-3">
+					<label for="base_directory" class="form-label">Корневая директория</label>
+					<div class="input-group">
+						<span class="input-group-text"><i class="fas fa-folder-open"></i></span>
+						<input
+							type="text"
+							class="form-control"
+							id="base_directory"
+							name="base_directory"
+							value={ config.BaseDirectory }
+							required
+							placeholder="e.g., data"
+						/>
+					</div>
+					<div class="form-text">Название папки где будут храниться данные приложения</div>
+				</div>
+			</div>
+		</div>
+		<div class="card shadow-sm mb-4">
+			<div class="card-header bg-secondary text-white">
+				<h5 class="mb-0"><i class="fas fa-server me-2"></i>Настройки сервера</h5>
+			</div>
+			<div class="card-body">
+				<div class="mb-3">
+					<label for="uploads_directory" class="form-label">Порт</label>
+					<div class="input-group">
+						<span class="input-group-text"><i class="fas fa-upload"></i></span>
+						<input
+							type="text"
+							class="form-control"
+							id="server_port"
+							name="server.server_port"
+							value={ config.ServerCfg.ServerPort }
+							required
+							placeholder="8080"
+						/>
+					</div>
+					<div class="form-text">Порт который использует сервер. Если указано значение 0 - порт будет назначаться операционной системой</div>
+				</div>
+			</div>
+			<div class="card-body">
+				<div class="mb-3">
+					<label for="uploads_directory" class="form-label">Директория загрузок</label>
+					<div class="input-group">
+						<span class="input-group-text"><i class="fas fa-upload"></i></span>
+						<input
+							type="text"
+							class="form-control"
+							id="uploads_directory"
+							name="server.uploads_directory"
+							value={ config.ServerCfg.UploadsDir }
+							required
+							placeholder="e.g., uploads"
+						/>
+					</div>
+					<div class="form-text">Название папки в которой будут хранится прикреплённые файлы, относительно корневой директории.</div>
+				</div>
+			</div>
+		</div>
+		<div class="card shadow-sm mb-4">
+			<div class="card-header bg-success text-white">
+				<h5 class="mb-0"><i class="fas fa-database me-2"></i>Настройки базы данных</h5>
+			</div>
+			<div class="card-body">
+				<div class="mb-3">
+					<label for="database_name" class="form-label">Название базы данных</label>
+					<div class="input-group">
+						<span class="input-group-text"><i class="fas fa-database"></i></span>
+						<input
+							type="text"
+							class="form-control"
+							id="database_name"
+							name="database.database_name"
+							value={ config.DBCfg.DBName }
+							required
+							placeholder="e.g., database.db"
+						/>
+					</div>
+					<div class="form-text">Название файла базы данных, относительно корневой директории.</div>
+				</div>
+			</div>
+		</div>
+		<div class="card shadow-sm mb-4">
+			<div class="card-header bg-warning text-dark">
+				<h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Настройки логирования</h5>
+			</div>
+			<div class="card-body">
+				<div class="mb-3">
+					<label for="log_level" class="form-label">Уровень логирования</label>
+					<select
+						class="form-select"
+						id="log_level"
+						name="log.log_level"
+						required
+					>
+						@logLevelOptions(config.LogCfg.LogLevel)
+					</select>
+					<div class="form-text">Минимальная значимость для записи лога.</div>
+				</div>
+			</div>
+		</div>
+		<div class="d-flex justify-content-between align-items-center">
+			<button
+				type="button"
+				class="btn btn-outline-secondary"
+				hx-delete="/config"
+				hx-target="#settings-form"
+				hx-swap="outerHTML"
+				hx-confirm="Reset all settings to defaults?"
+			>
+				<i class="fas fa-undo me-1"></i> Сбросить
+			</button>
+			<div class="d-flex gap-2">
+				<button
+					type="submit"
+					class="btn btn-primary"
+					hx-indicator="#settings-spinner"
+				>
+					<span id="settings-spinner" class="spinner-border spinner-border-sm htmx-indicator me-1" role="status"></span>
+					<i class="fas fa-save me-1"></i> Сохранить
+				</button>
+			</div>
+		</div>
+		<div id="settings-message" class="mt-3"></div>
+	</form>
+}
+
+templ logLevelOptions(currentLevel string) {
+	<option
+		value="DEBUG"
+		if "DEBUG" == currentLevel {
+			selected
+		}
+	>DEBUG - Все сообщения</option>
+	<option
+		value="INFO"
+		if "INFO" == currentLevel {
+			selected
+		}
+	>INFO - Информационные, предупреждения и ошибки</option>
+	<option
+		value="WARN"
+		if "WARN" == currentLevel {
+			selected
+		}
+	>WARN - Предупреждения и ошибки</option>
+	<option
+		value="ERROR"
+		if "ERROR" == currentLevel {
+			selected
+		}
+	>ERROR - Только ошибки</option>
+}
+
+templ SettingsMessage(success bool, message string) {
+    <div
+    if success{
+        class="alert alert-success alert-dismissible fade show"
+    }else{
+        class="alert alert-danger alert-dismissible fade show"
+    }
+        role="alert"
+    >
+        { message }
+    </div>
+}

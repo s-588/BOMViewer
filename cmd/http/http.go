@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/s-588/BOMViewer/cmd/config"
 	"github.com/s-588/BOMViewer/cmd/http/handlers"
 	"github.com/s-588/BOMViewer/internal/db"
 )
@@ -22,29 +23,27 @@ type Server struct {
 	mux     *http.ServeMux
 	cancel  context.CancelFunc
 	handler *handlers.Handler
-	Port    int
+	cfg     config.Config
 }
 
-func NewServer(cancel context.CancelFunc, port int, repo *db.Repository) *Server {
+func NewServer(cancel context.CancelFunc, repo *db.Repository, cfg config.Config) *Server {
 	return &Server{
 		cancel:  cancel,
-		handler: handlers.NewHandler(repo),
-		Port:    port,
+		handler: handlers.NewHandler(repo, cfg),
 		mux:     http.NewServeMux(),
+		cfg:     cfg,
 	}
 }
 
 func (s *Server) Start(portChan chan int) error {
 	s.setupPaths()
 
-	port := fmt.Sprintf(":%d", s.Port)
+	port := fmt.Sprintf(":%d", s.cfg.ServerCfg.ServerPort)
 	ls, err := net.Listen("tcp", port)
 	if err != nil {
 		return err
 	}
-	s.Port = ls.Addr().(*net.TCPAddr).Port
-	slog.Info("starting listening", "port", s.Port)
-	portChan <- s.Port
+	portChan <- ls.Addr().(*net.TCPAddr).Port
 
 	return http.Serve(ls, s.mux)
 }
@@ -94,6 +93,10 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("GET /calculator", s.handler.CalculatorPageHandler)
 	s.mux.HandleFunc("GET /calculator/products/{id}/materials", s.handler.CalculatorProductMaterialsHandler)
 	s.mux.HandleFunc("POST /calculator/calculate", s.handler.CalculatorCalculateHandler)
+
+	s.mux.HandleFunc("GET /config", s.handler.ConfigPageHandler)
+	s.mux.HandleFunc("POST /config", s.handler.UpdateConfigHandler)
+	s.mux.HandleFunc("DELETE /config", s.handler.ResetConfigHandler)
 }
 
 func (s *Server) stop(w http.ResponseWriter, r *http.Request) {

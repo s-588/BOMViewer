@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"log/slog"
 	"strconv"
 	"strings"
 )
@@ -110,4 +111,17 @@ func ParseQuantityRange(minStr, maxStr string) (*float64, *float64, error) {
 	}
 
 	return min, max, nil
+}
+
+func ParseLogLevel(level string) slog.Level {
+	switch level {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "ERROR":
+		return slog.LevelError
+	case "WARN", "WARNING":
+		return slog.LevelWarn
+	default:
+		return slog.LevelInfo
+	}
 }

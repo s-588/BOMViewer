@@ -20,10 +20,10 @@ const (
 // 		uploads/
 
 type Config struct {
-	BaseDirectory string `yaml:"base_directory,omitempty"`
-	ServerCfg ServerConfig `yaml:"server,omitempty"`
-	DBCfg DBConfig `yaml:"database,omitempty"`
-	LogCfg LogConfig `yaml:"log,omitempty"`
+	BaseDirectory string       `yaml:"base_directory,omitempty"`
+	ServerCfg     ServerConfig `yaml:"server,omitempty"`
+	DBCfg         DBConfig     `yaml:"database,omitempty"`
+	LogCfg        LogConfig    `yaml:"log,omitempty"`
 }
 
 type LogConfig struct {
@@ -32,7 +32,7 @@ type LogConfig struct {
 
 type ServerConfig struct {
 	// ServerPort is a port where server is running. Default is 0 and port is choosing by OS.
-	ServerPort int    `yaml:"server_port,omitempty"`
+	ServerPort int    `yaml:"server_port"`
 	UploadsDir string `yaml:"uploads_directory,omitempty"`
 }
 
@@ -133,4 +133,16 @@ func (cfg *Config) Save() error {
 		return fmt.Errorf("can't save config: %w", err)
 	}
 	return nil
+}
+
+func (cfg *Config) UpdateConfig(newCfg Config) error {
+	cfg = &newCfg
+	return cfg.Save()
+}
+
+func (cfg *Config) ResetConfig() error {
+	defaultCfg := &Config{}
+	defaultCfg.setDefaults()
+	cfg = defaultCfg
+	return cfg.Save()
 }

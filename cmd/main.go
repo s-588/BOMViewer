@@ -13,6 +13,7 @@ import (
 	"github.com/s-588/BOMViewer/cmd/config"
 	"github.com/s-588/BOMViewer/cmd/http"
 	"github.com/s-588/BOMViewer/internal/db"
+	"github.com/s-588/BOMViewer/internal/helpers"
 )
 
 func main() {
@@ -34,7 +35,7 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(
 		io.MultiWriter(os.Stdout, logFile), &slog.HandlerOptions{
 			AddSource: true,
-			Level:     parseLogLevel(cfg.LogCfg.LogLevel),
+			Level:     helpers.ParseLogLevel(cfg.LogCfg.LogLevel),
 		})))
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -52,7 +53,7 @@ func main() {
 	go func() {
 		slog.Info("starting server", "port", cfg.ServerCfg.ServerPort)
 
-		err = http.NewServer(cancel, cfg.ServerCfg.ServerPort, repo).Start(portChan)
+		err = http.NewServer(cancel, repo, cfg).Start(portChan)
 		if err != nil {
 			slog.Error("error starting server:", "error", err)
 			cancel()
@@ -69,19 +70,6 @@ func main() {
 
 	<-ctx.Done()
 	slog.Info("received shutdown signal, stopping the app")
-}
-
-func parseLogLevel(level string) slog.Level {
-	switch level {
-	case "DEBUG":
-		return slog.LevelDebug
-	case "ERROR":
-		return slog.LevelError
-	case "WARN", "WARNING":
-		return slog.LevelWarn
-	default:
-		return slog.LevelInfo
-	}
 }
 
 func initFolders(cfg config.Config) error {
