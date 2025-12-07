@@ -26,7 +26,11 @@ func main() {
 		panic(err)
 	}
 
-	logPath := filepath.Join(cfg.BaseDirectory, fmt.Sprintf("log_%s.log",
+	err = os.Mkdir(filepath.Join(cfg.BaseDirectory, "logs"), 0644)
+	if err != nil && !os.IsExist(err) {
+		panic(err)
+	}
+	logPath := filepath.Join(cfg.BaseDirectory, "logs", fmt.Sprintf("log_%s.log",
 		time.Now().Format("2006-01-02_15-04-05")))
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
@@ -83,7 +87,7 @@ func initFolders(cfg config.Config) error {
 	if err != nil {
 		return fmt.Errorf("can't create uploads folders: %w", err)
 	}
-	
+
 	databasePath := filepath.Join(cfg.BaseDirectory, filepath.Dir(cfg.DBCfg.DBName))
 	err = os.MkdirAll(databasePath, 0644)
 	if err != nil {
