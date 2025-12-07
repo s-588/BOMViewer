@@ -83,6 +83,12 @@ func initFolders(cfg config.Config) error {
 	if err != nil {
 		return fmt.Errorf("can't create uploads folders: %w", err)
 	}
+	
+	databasePath := filepath.Join(cfg.BaseDirectory, filepath.Dir(cfg.DBCfg.DBName))
+	err = os.MkdirAll(databasePath, 0644)
+	if err != nil {
+		return fmt.Errorf("can't create database folders: %w", err)
+	}
 
 	return nil
 }
