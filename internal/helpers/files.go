@@ -14,17 +14,31 @@ import (
 	"github.com/s-588/BOMViewer/internal/models"
 )
 
+var AllowedTypes = []string{
+            "image/jpeg", "image/png", "image/gif", "image/webp",
+
+            "application/pdf",
+            "application/msword", // .doc
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+
+            "text/plain",
+            "application/rtf",
+
+            "application/zip",
+            "application/x-zip-compressed",
+}
+
 type FileUploadConfig struct {
 	UploadDir     string
 	MaxUploadSize int64
-	AllowedTypes  []string
 }
 
 func NewFileUploadConfig(uploadDir string) *FileUploadConfig {
 	return &FileUploadConfig{
 		UploadDir:     uploadDir,
 		MaxUploadSize: 100 * 1024 * 1024, // 100MB
-		AllowedTypes:  []string{"image/jpeg", "image/png", "image/gif", "image/webp"},
 	}
 }
 
@@ -113,7 +127,7 @@ func (c *FileUploadConfig) HandleFileUpload(r *http.Request, formFieldName strin
 }
 
 func (c *FileUploadConfig) isAllowedType(mimeType string) bool {
-	return slices.Contains(c.AllowedTypes, mimeType)
+	return slices.Contains(AllowedTypes, mimeType)
 }
 
 func generateUniqueFileName() string {
