@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/s-588/BOMViewer/internal/helpers"
+	"github.com/s-588/BOMViewer/web/templates"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -42,14 +43,14 @@ func (m *AuthManager) AuthMiddleware(next http.Handler) http.Handler {
 
 		session, err := r.Cookie("session")
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusUnauthorized)
+			templates.LoginPage().Render(r.Context(), w)
 			return
 		}
 
 		t, ok := m.sessions[session.Value]
 		if !ok || time.Now().After(t) {
 			delete(m.sessions, session.Value)
-			http.Redirect(w, r, "/login", http.StatusUnauthorized)
+			templates.LoginPage().Render(r.Context(), w)
 			return
 		}
 
@@ -83,8 +84,8 @@ func (m *AuthManager) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	slog.Info("user successfully logged in","session_id",sessionID)
-	w.Header().Add("HX-Redirect","/welcome")
+	slog.Info("user successfully logged in", "session_id", sessionID)
+	w.Header().Add("HX-Redirect", "/welcome")
 	w.WriteHeader(http.StatusOK)
 }
 
