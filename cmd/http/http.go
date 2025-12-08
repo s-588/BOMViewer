@@ -10,6 +10,7 @@ import (
 
 	"github.com/s-588/BOMViewer/cmd/config"
 	"github.com/s-588/BOMViewer/cmd/http/handlers"
+	"github.com/s-588/BOMViewer/cmd/http/middleware"
 	"github.com/s-588/BOMViewer/internal/db"
 )
 
@@ -19,19 +20,21 @@ var (
 )
 
 type Server struct {
-	ctx     context.Context
-	mux     *http.ServeMux
-	cancel  context.CancelFunc
-	handler *handlers.Handler
-	cfg     config.Config
+	ctx         context.Context
+	mux         *http.ServeMux
+	cancel      context.CancelFunc
+	handler     *handlers.Handler
+	cfg         *config.Config
+	authManager *middleware.AuthManager
 }
 
-func NewServer(cancel context.CancelFunc, repo *db.Repository, cfg config.Config) *Server {
+func NewServer(cancel context.CancelFunc, repo *db.Repository, cfg *config.Config) *Server {
 	return &Server{
-		cancel:  cancel,
-		handler: handlers.NewHandler(repo, cfg),
-		mux:     http.NewServeMux(),
-		cfg:     cfg,
+		cancel:      cancel,
+		handler:     handlers.NewHandler(repo, cfg),
+		mux:         http.NewServeMux(),
+		cfg:         cfg,
+		authManager: middleware.NewAuthManager(cfg.WebUIPassword),
 	}
 }
 
@@ -45,7 +48,7 @@ func (s *Server) Start(portChan chan int) error {
 	}
 	portChan <- ls.Addr().(*net.TCPAddr).Port
 
-	return http.Serve(ls, s.mux)
+	return http.Serve(ls, s.authManager.AuthMiddleware(s.mux))
 }
 
 func (s *Server) setupPaths() {
@@ -97,6 +100,11 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("GET /config", s.handler.ConfigPageHandler)
 	s.mux.HandleFunc("POST /config", s.handler.UpdateConfigHandler)
 	s.mux.HandleFunc("DELETE /config", s.handler.ResetConfigHandler)
+	s.mux.HandleFunc("DELETE /config/{field}", s.handler.ResetConfigHandler)
+
+	s.mux.HandleFunc("GET /login", s.handler.LoginPageHandler)
+	s.mux.HandleFunc("POST /login", s.authManager.LoginHandler)
+	s.mux.HandleFunc("DELETE /login", s.authManager.LogoutHandler)
 }
 
 func (s *Server) stop(w http.ResponseWriter, r *http.Request) {

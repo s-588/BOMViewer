@@ -76,7 +76,7 @@ func main() {
 	slog.Info("received shutdown signal, stopping the app")
 }
 
-func initFolders(cfg config.Config) error {
+func initFolders(cfg *config.Config) error {
 	err := os.MkdirAll(cfg.BaseDirectory, 0644)
 	if err != nil {
 		return fmt.Errorf("can't create base folders: %w", err)

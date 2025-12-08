@@ -13,7 +13,7 @@ import (
 type Handler struct {
 	db         *db.Repository
 	fileUpload *helpers.FileUploadConfig
-	cfg        config.Config
+	cfg        *config.Config
 }
 
 func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +53,7 @@ func (h *Handler) RootPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewHandler(db *db.Repository, cfg config.Config) *Handler {
+func NewHandler(db *db.Repository, cfg *config.Config) *Handler {
 	return &Handler{
 		db:         db,
 		fileUpload: helpers.NewFileUploadConfig("uploads"),

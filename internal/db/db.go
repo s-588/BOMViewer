@@ -36,7 +36,7 @@ type Repository struct {
 	db      *sql.DB
 }
 
-func NewRepository(ctx context.Context, cfg config.Config) (*Repository, error) {
+func NewRepository(ctx context.Context, cfg *config.Config) (*Repository, error) {
 	connStr := filepath.Join(cfg.BaseDirectory, cfg.DBCfg.DBName)
 	conn, err := sql.Open("sqlite", connStr)
 	if err != nil {

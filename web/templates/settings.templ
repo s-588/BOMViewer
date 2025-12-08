@@ -2,114 +2,50 @@ package templates
 
 import "github.com/s-588/BOMViewer/cmd/config"
 
-templ SettingsForm(config config.Config) {
-	<form hx-post="/config" hx-target="#settings-message" hx-swap="outerHTML">
+templ SettingsForm(config *config.Config) {
+	<form hx-post="/config" hx-target="#content" id="settings-form">
 		<div class="card shadow-sm mb-4">
 			<div class="card-header bg-primary text-white">
 				<h5 class="mb-0"><i class="fas fa-folder me-2"></i>Базовые настройки</h5>
 			</div>
 			<div class="card-body">
-				<div class="mb-3">
-					<label for="base_directory" class="form-label">Корневая директория</label>
-					<div class="input-group">
-						<span class="input-group-text"><i class="fas fa-folder-open"></i></span>
-						<input
-							type="text"
-							class="form-control"
-							id="base_directory"
-							name="base_directory"
-							value={ config.BaseDirectory }
-							required
-							placeholder="e.g., data"
-						/>
-					</div>
-					<div class="form-text">Название папки где будут храниться данные приложения</div>
-				</div>
+				@BaseDirectoryField(config)
+			</div>
+			<div class="card-body">
+				@WebUIPasswordField(config)
 			</div>
 		</div>
+		
 		<div class="card shadow-sm mb-4">
 			<div class="card-header bg-secondary text-white">
 				<h5 class="mb-0"><i class="fas fa-server me-2"></i>Настройки сервера</h5>
 			</div>
 			<div class="card-body">
-				<div class="mb-3">
-					<label for="uploads_directory" class="form-label">Порт</label>
-					<div class="input-group">
-						<span class="input-group-text"><i class="fas fa-upload"></i></span>
-						<input
-							type="text"
-							class="form-control"
-							id="server_port"
-							name="server.server_port"
-							value={ config.ServerCfg.ServerPort }
-							required
-							placeholder="8080"
-						/>
-					</div>
-					<div class="form-text">Порт который использует сервер. Если указано значение 0 - порт будет назначаться операционной системой</div>
-				</div>
+				@ServerPortField(config)
 			</div>
 			<div class="card-body">
-				<div class="mb-3">
-					<label for="uploads_directory" class="form-label">Директория загрузок</label>
-					<div class="input-group">
-						<span class="input-group-text"><i class="fas fa-upload"></i></span>
-						<input
-							type="text"
-							class="form-control"
-							id="uploads_directory"
-							name="server.uploads_directory"
-							value={ config.ServerCfg.UploadsDir }
-							required
-							placeholder="e.g., uploads"
-						/>
-					</div>
-					<div class="form-text">Название папки в которой будут хранится прикреплённые файлы, относительно корневой директории.</div>
-				</div>
+				@UploadsDirectoryField(config)
 			</div>
 		</div>
+		
 		<div class="card shadow-sm mb-4">
 			<div class="card-header bg-success text-white">
 				<h5 class="mb-0"><i class="fas fa-database me-2"></i>Настройки базы данных</h5>
 			</div>
 			<div class="card-body">
-				<div class="mb-3">
-					<label for="database_name" class="form-label">Название базы данных</label>
-					<div class="input-group">
-						<span class="input-group-text"><i class="fas fa-database"></i></span>
-						<input
-							type="text"
-							class="form-control"
-							id="database_name"
-							name="database.database_name"
-							value={ config.DBCfg.DBName }
-							required
-							placeholder="e.g., database.db"
-						/>
-					</div>
-					<div class="form-text">Название файла базы данных, относительно корневой директории.</div>
-				</div>
+				@DatabaseNameField(config)
 			</div>
 		</div>
+		
 		<div class="card shadow-sm mb-4">
 			<div class="card-header bg-warning text-dark">
 				<h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Настройки логирования</h5>
 			</div>
 			<div class="card-body">
-				<div class="mb-3">
-					<label for="log_level" class="form-label">Уровень логирования</label>
-					<select
-						class="form-select"
-						id="log_level"
-						name="log.log_level"
-						required
-					>
-						@logLevelOptions(config.LogCfg.LogLevel)
-					</select>
-					<div class="form-text">Минимальная значимость для записи лога.</div>
-				</div>
+				@LogLevelField(config)
 			</div>
 		</div>
+		
 		<div class="d-flex justify-content-between align-items-center">
 			<button
 				type="button"
@@ -117,9 +53,9 @@ templ SettingsForm(config config.Config) {
 				hx-delete="/config"
 				hx-target="#settings-form"
 				hx-swap="outerHTML"
-				hx-confirm="Reset all settings to defaults?"
+				hx-confirm="Сбросить все настройки к значениям по умолчанию?"
 			>
-				<i class="fas fa-undo me-1"></i> Сбросить
+				<i class="fas fa-undo me-1"></i> Сбросить все
 			</button>
 			<div class="d-flex gap-2">
 				<button
@@ -134,6 +70,224 @@ templ SettingsForm(config config.Config) {
 		</div>
 		<div id="settings-message" class="mt-3"></div>
 	</form>
+}
+
+templ BaseDirectoryField(config *config.Config) {
+	<div id="base-directory-field" class="mb-3">
+		<label for="base_directory" class="form-label d-flex justify-content-between align-items-center">
+			<span>Корневая директория</span>
+			<button
+				type="button"
+				class="btn btn-sm btn-outline-secondary"
+				hx-delete="/config/base_directory"
+				hx-target="#base-directory-field"
+				hx-swap="outerHTML"
+				title="Сбросить к значению по умолчанию"
+			>
+				<i class="fas fa-undo fa-xs"></i>
+			</button>
+		</label>
+		<div class="input-group">
+			<span class="input-group-text"><i class="fas fa-folder-open"></i></span>
+			<input
+				type="text"
+				class="form-control"
+				id="base_directory"
+				name="base_directory"
+				value={ config.BaseDirectory }
+				required
+				placeholder="e.g., data"
+			/>
+		</div>
+		<div class="form-text">Название папки где будут храниться данные приложения</div>
+	</div>
+}
+
+templ WebUIPasswordField(config *config.Config) {
+	<div id="web-ui-password-field" class="mb-3">
+		<label class="form-label d-flex justify-content-between align-items-center">
+			<span>Пароль веб интерфейса</span>
+			if config.WebUIPassword != "" { 
+				<button
+					type="button"
+					class="btn btn-sm btn-outline-secondary"
+					hx-delete="/config/web_ui_password"
+					hx-target="#web-ui-password-field"
+					hx-swap="outerHTML"
+					title="Сбросить к значению по умолчанию"
+				>
+					<i class="fas fa-undo fa-xs"></i>
+				</button>
+			}
+		</label>
+		if config.WebUIPassword != "" {
+			<div class="d-flex align-items-center gap-2">
+				<span class="text-muted">••••••••</span>
+				<button
+					type="button"
+					class="btn btn-outline-secondary btn-sm"
+					hx-delete="/config/web_ui_password"
+					hx-target="#web-ui-password-field"
+					hx-swap="outerHTML"
+					hx-confirm="Сбросить пароль веб интерфейса?"
+				>
+					<i class="fas fa-trash me-1"></i> Удалить пароль
+				</button>
+			</div>
+		} else {
+			<div class="row g-2">
+				<div class="col-md-6">
+					<label for="web_ui_password" class="form-label">Новый пароль</label>
+					<div class="input-group">
+						<input
+							type="password"
+							class="form-control"
+							id="web_ui_password"
+							name="web_ui_password"
+							value={ config.WebUIPassword }
+							placeholder="введите пароль"
+						/>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<label for="web_ui_password_confirm" class="form-label">Подтверждение</label>
+					<div class="input-group">
+						<input
+							type="password"
+							class="form-control"
+							id="web_ui_password_confirm"
+							name="web_ui_password_confirm"
+							value={ config.WebUIPassword }
+							placeholder="повторите пароль"
+						/>
+					</div>
+				</div>
+			</div>
+			<div class="form-text mt-1">Оставьте пустым, чтобы не устанавливать пароль</div>
+		}
+	</div>
+}
+
+templ ServerPortField(config *config.Config) {
+	<div id="server-port-field" class="mb-3">
+		<label for="server_port" class="form-label d-flex justify-content-between align-items-center">
+			<span>Порт</span>
+			<button
+				type="button"
+				class="btn btn-sm btn-outline-secondary"
+				hx-delete="/config/server_port"
+				hx-target="#server-port-field"
+				hx-swap="outerHTML"
+				title="Сбросить к значению по умолчанию"
+			>
+				<i class="fas fa-undo fa-xs"></i>
+			</button>
+		</label>
+		<div class="input-group">
+			<span class="input-group-text"><i class="fas fa-network-wired"></i></span>
+			<input
+				type="number"
+				class="form-control"
+				id="server_port"
+				name="server.server_port"
+				value={ config.ServerCfg.ServerPort }
+				required
+				placeholder="8080"
+				min="0"
+				max="65535"
+			/>
+		</div>
+		<div class="form-text">Порт который использует сервер. Если указано значение 0 - порт будет назначаться операционной системой</div>
+	</div>
+}
+
+templ UploadsDirectoryField(config *config.Config) {
+	<div id="uploads-directory-field" class="mb-3">
+		<label for="uploads_directory" class="form-label d-flex justify-content-between align-items-center">
+			<span>Директория загрузок</span>
+			<button
+				type="button"
+				class="btn btn-sm btn-outline-secondary"
+				hx-delete="/config/uploads_directory"
+				hx-target="#uploads-directory-field"
+				hx-swap="outerHTML"
+				title="Сбросить к значению по умолчанию"
+			>
+				<i class="fas fa-undo fa-xs"></i>
+			</button>
+		</label>
+		<div class="input-group">
+			<span class="input-group-text"><i class="fas fa-upload"></i></span>
+			<input
+				type="text"
+				class="form-control"
+				id="uploads_directory"
+				name="server.uploads_directory"
+				value={ config.ServerCfg.UploadsDir }
+				required
+				placeholder="e.g., uploads"
+			/>
+		</div>
+		<div class="form-text">Название папки в которой будут хранится прикреплённые файлы, относительно корневой директории.</div>
+	</div>
+}
+
+templ DatabaseNameField(config *config.Config) {
+	<div id="database-name-field" class="mb-3">
+		<label for="database_name" class="form-label d-flex justify-content-between align-items-center">
+			<span>Название базы данных</span>
+			<button
+				type="button"
+				class="btn btn-sm btn-outline-secondary"
+				hx-delete="/config/database_name"
+				hx-target="#database-name-field"
+				hx-swap="outerHTML"
+				title="Сбросить к значению по умолчанию"
+			>
+				<i class="fas fa-undo fa-xs"></i>
+			</button>
+		</label>
+		<div class="input-group">
+			<span class="input-group-text"><i class="fas fa-database"></i></span>
+			<input
+				type="text"
+				class="form-control"
+				id="database_name"
+				name="database.database_name"
+				value={ config.DBCfg.DBName }
+				required
+				placeholder="e.g., database.db"
+			/>
+		</div>
+		<div class="form-text">Название файла базы данных, относительно корневой директории.</div>
+	</div>
+}
+
+templ LogLevelField(config *config.Config) {
+	<div id="log-level-field" class="mb-3">
+		<label for="log_level" class="form-label d-flex justify-content-between align-items-center">
+			<span>Уровень логирования</span>
+			<button
+				type="button"
+				class="btn btn-sm btn-outline-secondary"
+				hx-delete="/config/log_level"
+				hx-target="#log-level-field"
+				hx-swap="outerHTML"
+				title="Сбросить к значению по умолчанию"
+			>
+				<i class="fas fa-undo fa-xs"></i>
+			</button>
+		</label>
+		<select
+			class="form-select"
+			id="log_level"
+			name="log.log_level"
+			required
+		>
+			@logLevelOptions(config.LogCfg.LogLevel)
+		</select>
+		<div class="form-text">Минимальная значимость для записи лога.</div>
+	</div>
 }
 
 templ logLevelOptions(currentLevel string) {
@@ -164,14 +318,35 @@ templ logLevelOptions(currentLevel string) {
 }
 
 templ SettingsMessage(success bool, message string) {
-    <div
-    if success{
-        class="alert alert-success alert-dismissible fade show"
-    }else{
-        class="alert alert-danger alert-dismissible fade show"
+	<div
+		if success {
+			class="alert alert-success alert-dismissible fade show"
+		} else {
+			class="alert alert-danger alert-dismissible fade show"
+		}
+		role="alert"
+	>
+		{ message }
+	</div>
+}
+
+templ SettingsField(field string, config *config.Config) {
+    switch field {
+    case "base_directory":
+        @BaseDirectoryField(config)
+    case "web_ui_password":
+        @WebUIPasswordField(config)
+    case "server_port":
+        @ServerPortField(config)
+    case "uploads_directory":
+        @UploadsDirectoryField(config)
+    case "database_name":
+        @DatabaseNameField(config)
+    case "log_level":
+        @LogLevelField(config)
+    default:
+        <div class="alert alert-warning" role="alert">
+            Неизвестное поле настройки: { field }
+        </div>
     }
-        role="alert"
-    >
-        { message }
-    </div>
 }

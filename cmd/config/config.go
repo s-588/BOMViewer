@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -21,6 +23,7 @@ const (
 
 type Config struct {
 	BaseDirectory string       `yaml:"base_directory,omitempty"`
+	WebUIPassword string       `yaml:"web_ui_password,omitempty"`
 	ServerCfg     ServerConfig `yaml:"server,omitempty"`
 	DBCfg         DBConfig     `yaml:"database,omitempty"`
 	LogCfg        LogConfig    `yaml:"log,omitempty"`
@@ -40,18 +43,33 @@ type DBConfig struct {
 	DBName string `yaml:"database_name,omitempty"`
 }
 
-func NewConfig(cfgPath string) (Config, error) {
+var DefaultConfig = Config{
+	BaseDirectory: "base",
+	WebUIPassword: "",
+	ServerCfg: ServerConfig{
+		ServerPort: 0,
+		UploadsDir: "uploads",
+	},
+	DBCfg: DBConfig{
+		DBName: "database.db",
+	},
+	LogCfg: LogConfig{
+		LogLevel: "INFO",
+	},
+}
+
+func NewConfig(cfgPath string) (*Config, error) {
 	file, err := os.Open(cfgPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 
 			file, err = setupConfigFile(cfgPath)
 			if err != nil {
-				return Config{}, err
+				return nil, err
 			}
 
 		} else {
-			return Config{}, err
+			return nil, err
 		}
 	}
 	cfg, err := parseConfig(file)
@@ -63,8 +81,8 @@ func NewConfig(cfgPath string) (Config, error) {
 	return cfg, err
 }
 
-func parseConfig(file *os.File) (Config, error) {
-	cfg := Config{}
+func parseConfig(file *os.File) (*Config, error) {
+	cfg := &Config{}
 
 	buf, err := io.ReadAll(file)
 	if err != nil {
@@ -132,11 +150,12 @@ func (cfg *Config) Save() error {
 	if err != nil {
 		return fmt.Errorf("can't save config: %w", err)
 	}
+	slog.Info("new config saved", "config", cfg)
 	return nil
 }
 
 func (cfg *Config) UpdateConfig(newCfg Config) error {
-	cfg = &newCfg
+	*cfg = newCfg
 	return cfg.Save()
 }
 
@@ -145,4 +164,36 @@ func (cfg *Config) ResetConfig() error {
 	defaultCfg.setDefaults()
 	cfg = defaultCfg
 	return cfg.Save()
+}
+
+func (cfg *Config) ResetField(field string) error {
+	slog.Debug("reseting config value", "field", field)
+	switch strings.ToLower(strings.TrimSpace(field)) {
+
+	case "base_directory":
+		cfg.BaseDirectory = DefaultConfig.BaseDirectory
+		return cfg.Save()
+
+	case "web_ui_password":
+		cfg.WebUIPassword = DefaultConfig.WebUIPassword
+		return cfg.Save()
+
+	case "log_level":
+		cfg.LogCfg.LogLevel = DefaultConfig.LogCfg.LogLevel
+		return cfg.Save()
+
+	case "server_port":
+		cfg.ServerCfg.ServerPort = DefaultConfig.ServerCfg.ServerPort
+		return cfg.Save()
+
+	case "uploads_directory":
+		cfg.ServerCfg.UploadsDir = DefaultConfig.ServerCfg.UploadsDir
+		return cfg.Save()
+
+	case "database_name":
+		cfg.DBCfg.DBName = DefaultConfig.DBCfg.DBName
+		return cfg.Save()
+
+	}
+	return nil
 }
