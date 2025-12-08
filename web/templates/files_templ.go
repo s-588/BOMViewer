@@ -225,7 +225,7 @@ func FileList(entityID int64, entityType string, files []models.File) templ.Comp
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" class=\"btn btn-sm btn-outline-primary w-100 mb-1\" target=\"_blank\">Скачать</a> <button class=\"btn btn-sm btn-outline-danger w-100\" hx-delete=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" class=\"btn btn-sm btn-outline-primary w-100 mb-1\" target=\"_blank\">Открыть</a> <button class=\"btn btn-sm btn-outline-danger w-100\" hx-delete=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

@@ -170,8 +170,8 @@ func (h *Handler) FileDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set appropriate headers for download
-	w.Header().Set("Content-Disposition", "attachment; filename="+file.Name)
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "inline; filename="+file.Name)
+	w.Header().Set("Content-Type", file.MimeType)
 
 	http.ServeFile(w, r, file.Path)
 }
