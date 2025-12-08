@@ -60,17 +60,17 @@ func (m *AuthManager) AuthMiddleware(next http.Handler) http.Handler {
 func (m *AuthManager) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	pass := r.FormValue("password")
 	if pass == "" {
-		helpers.WriteAndLogError(w, http.StatusUnauthorized, "empty password", errors.New("Неверный пароль"))
+		helpers.SetAndLogError(w, http.StatusUnauthorized, "пустой пароль", "empty password attempt", "error", errors.New("Неверный пароль"))
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(m.passHash), []byte(pass)); err != nil {
-		helpers.WriteAndLogError(w, http.StatusUnauthorized, "invalid password", errors.New("Неверный пароль"))
+		helpers.SetAndLogError(w, http.StatusUnauthorized, "неверный пароль", "invalid password attempt", "error", err)
 		return
 	}
 	sessionIDData := make([]byte, 32)
 	_, err := rand.Read(sessionIDData)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "error generating session ID", errors.New("Внутреняя ошибка сервера"))
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка генерации идентификатора сессии", "error generating session ID", "error", err)
 		return
 	}
 	sessionID := base64.URLEncoding.EncodeToString(sessionIDData)

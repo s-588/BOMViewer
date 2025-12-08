@@ -33,7 +33,9 @@ type CalculationResult struct {
 func (h *Handler) CalculatorPageHandler(w http.ResponseWriter, r *http.Request) {
 	products, err := h.db.GetAllProducts(r.Context())
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка изделии", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, 
+			"ошибка получения списка изделии", 
+			"can't get products for calculator page", "error", err)
 		return
 	}
 
@@ -43,7 +45,7 @@ func (h *Handler) CalculatorPageHandler(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) CalculatorProductMaterialsHandler(w http.ResponseWriter, r *http.Request) {
 	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор изделия", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор изделия", "invalid product ID in calculator product materials handler", err)
 		return
 	}
 
@@ -57,7 +59,7 @@ func (h *Handler) CalculatorProductMaterialsHandler(w http.ResponseWriter, r *ht
 
 	product, err := h.db.GetProductByID(r.Context(), productID)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения материалов изделия", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка получения материалов изделия", "error getting product materials in calculator product materials handler", err)
 		return
 	}
 
@@ -97,13 +99,13 @@ func (h *Handler) CalculatorProductMaterialsHandler(w http.ResponseWriter, r *ht
 
 func (h *Handler) CalculatorCalculateHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка обработки формы", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка обработки формы", "error parsing form in calculator calculate handler", "error", err)
 		return
 	}
 
 	productID, err := strconv.ParseInt(r.FormValue("product_id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор изделия", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор изделия", "invalid product ID in calculator calculate handler", "error", err)
 		return
 	}
 
@@ -113,14 +115,14 @@ func (h *Handler) CalculatorCalculateHandler(w http.ResponseWriter, r *http.Requ
 	}
 	desiredQuantity, err := strconv.ParseInt(dq, 10, 64)
 	if err != nil || desiredQuantity <= 0 {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверное желаемое количество", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверное желаемое количество", "invalid desired quantity in calculator calculate handler", "error", err)
 		return
 	}
 
 	// Get product materials to know the required quantities
 	materials, err := h.db.GetProductMaterials(r.Context(), productID)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения материалов изделия", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка получения материалов изделия", "error getting product materials in calculator calculate handler", "error", err)
 		return
 	}
 

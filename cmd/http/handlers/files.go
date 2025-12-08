@@ -12,14 +12,14 @@ import (
 func (h *Handler) MaterialImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	materialID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор материала", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор материала", "invalid material ID", "error", err)
 		return
 	}
 
 	// Handle file upload
 	uploadedFile, err := h.fileUpload.HandleFileUpload(r, "image")
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла: "+err.Error(), err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла: "+err.Error(), "error uploading file", "error", err)
 		return
 	}
 
@@ -28,7 +28,7 @@ func (h *Handler) MaterialImageUploadHandler(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		// Clean up uploaded file
 		h.fileUpload.DeleteFile(uploadedFile.Path)
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", "error saving file record", "error", err)
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h *Handler) MaterialImageUploadHandler(w http.ResponseWriter, r *http.Requ
 		// Clean up uploaded file and database record
 		h.fileUpload.DeleteFile(uploadedFile.Path)
 		h.db.DeleteFile(r.Context(), fileID)
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к материалу", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к материалу", "error linking file to material", "error", err)
 		return
 	}
 
@@ -48,14 +48,14 @@ func (h *Handler) MaterialImageUploadHandler(w http.ResponseWriter, r *http.Requ
 func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор изделия", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор изделия", "invalid product ID", "error", err)
 		return
 	}
 
 	// Handle file upload - using the same fileUpload service as materials
 	uploadedFile, err := h.fileUpload.HandleFileUpload(r, "file") // or "image" if you want to restrict to images
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла: "+err.Error(), err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла: "+err.Error(), "error uploading file", "error", err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		// Clean up uploaded file
 		h.fileUpload.DeleteFile(uploadedFile.Path)
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", "error saving file record", "error", err)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Reques
 		// Clean up uploaded file and database record
 		h.fileUpload.DeleteFile(uploadedFile.Path)
 		h.db.DeleteFile(r.Context(), fileID)
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к изделию", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к изделию", "error linking file to product", "error", err)
 		return
 	}
 
@@ -85,14 +85,14 @@ func (h *Handler) ProductFileUploadHandler(w http.ResponseWriter, r *http.Reques
 func (h *Handler) ProductImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	productID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор продукта", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор продукта", "invalid product ID", "error", err)
 		return
 	}
 
 	// Handle file upload (same logic as material)
 	uploadedFile, err := h.fileUpload.HandleFileUpload(r, "image")
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла: "+err.Error(), err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка загрузки файла: "+err.Error(), "error uploading file", "error", err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *Handler) ProductImageUploadHandler(w http.ResponseWriter, r *http.Reque
 	fileID, err := h.db.InsertFile(r.Context(), *uploadedFile)
 	if err != nil {
 		h.fileUpload.DeleteFile(uploadedFile.Path)
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка сохранения файла в базе данных", "error saving file record", "error", err)
 		return
 	}
 
@@ -115,14 +115,14 @@ func (h *Handler) ProductImageUploadHandler(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			slog.Error("cannot delete file from database", "error", err, "where", "ProductImageUploadHandler")
 		}
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к продукту", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка привязки файла к продукту", "error linking file to product", "error", err)
 		return
 	}
 
 	// Get updated file list
 	files, err := h.db.GetProductFiles(r.Context(), productID)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка получения списка файлов", err)
+		helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка получения списка файлов", "error getting product files", "error", err)
 		return
 	}
 
@@ -135,13 +135,13 @@ func (h *Handler) ProductImageUploadHandler(w http.ResponseWriter, r *http.Reque
 func (h *Handler) FilePreview(w http.ResponseWriter, r *http.Request) {
 	fileID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор файла", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор файла", "invalid file ID", "error", err)
 		return
 	}
 
 	file, err := h.db.GetFileByID(r.Context(), fileID)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusNotFound, "Файл не найден", err)
+		helpers.SetAndLogError(w, http.StatusNotFound, "Файл не найден", "file not found", "error", err)
 		return
 	}
 
@@ -159,13 +159,13 @@ func (h *Handler) FilePreview(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) FileDownload(w http.ResponseWriter, r *http.Request) {
 	fileID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusBadRequest, "Неверный идентификатор файла", err)
+		helpers.SetAndLogError(w, http.StatusBadRequest, "Неверный идентификатор файла", "invalid file ID", "error", err)
 		return
 	}
 
 	file, err := h.db.GetFileByID(r.Context(), fileID)
 	if err != nil {
-		helpers.WriteAndLogError(w, http.StatusNotFound, "Файл не найден", err)
+		helpers.SetAndLogError(w, http.StatusNotFound, "Файл не найден", "file not found", "error", err)
 		return
 	}
 

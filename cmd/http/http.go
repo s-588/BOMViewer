@@ -65,7 +65,6 @@ func (s *Server) setupPaths() {
 	s.mux.HandleFunc("POST /materials", s.handler.MaterialNewHandler)                              // create new material, return new list of materials
 	s.mux.HandleFunc("GET /materials/{id}", s.handler.MaterialViewHandler)                         // return material by id
 	s.mux.HandleFunc("POST /materials/{id}", s.handler.MaterialUpdateHandler)                      // update material, return updated material
-	s.mux.HandleFunc("GET /materials/{id}/products", s.handler.MaterialProductListHandler)         // return list of products that use this material
 	s.mux.HandleFunc("GET /materials/{id}/files", s.handler.MaterialFileListHandler)               // return list of pinned files
 	s.mux.HandleFunc("POST /materials/{id}/upload-file", s.handler.MaterialFileUploadHandler)      // attach new file
 	s.mux.HandleFunc("DELETE /materials/{id}/files/{fileID}", s.handler.MaterialFileDeleteHandler) // delete file

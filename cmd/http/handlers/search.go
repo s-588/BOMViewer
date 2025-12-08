@@ -27,19 +27,19 @@ func (h *Handler) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	case "materials":
 		_, err := h.db.SearchMaterials(r.Context(), q, limit)
 		if err != nil {
-			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка поиска материалов: "+err.Error(), err)
+			helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка поиска материалов: "+err.Error(), "error searching materials", "error", err)
 			return
 		}
 	case "products":
 		_, err := h.db.SearchProducts(r.Context(), q, limit)
 		if err != nil {
-			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка поиска продуктов: "+err.Error(), err)
+			helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка поиска продуктов: "+err.Error(), "error searching products", "error", err)
 			return
 		}
 	default:
 		materials, products, err := h.db.SearchAll(r.Context(), q, limit)
 		if err != nil {
-			helpers.WriteAndLogError(w, http.StatusInternalServerError, "ошибка поиска всего: "+err.Error(), err)
+			helpers.SetAndLogError(w, http.StatusInternalServerError, "ошибка поиска: "+err.Error(), "error searching all", "error", err)
 			return
 		}
 

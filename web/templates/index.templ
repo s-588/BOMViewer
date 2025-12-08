@@ -13,88 +13,129 @@ templ Index(ctx context.Context, materials []models.Material, tableArgs Material
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>App title</title>
-			<link rel="stylesheet" href="/static/css/style.css"/>
 			<link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
 			<script src="/static/js/bootstrap.bundle.min.js"></script>
+			<script src="/static/js/htmx.min.js"></script>
 		</head>
 		<body class="bg-light">
 			@header()
-			<div id="error-area" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="min-width:300px; z-index:2000; display:none;"></div>
+			<div id="alert-area" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="min-width:300px; z-index:2000; display:none;"></div>
 			<div class="container mb-5" id="content">
 				@MainMaterialPage(materials, tableArgs)
 			</div>
 			<div id="modal-container"></div>
 		</body>
-		<script src="/static/js/image-viewer.js"></script>
-		<script src="/static/js/htmx.min.js"></script>
 		<script>
-document.body.addEventListener("htmx:responseError", function (e) {
- if (e.detail.xhr.status === 299) {
-        showAlert("warning", e.detail.xhr.response);
-        e.preventDefault();
-        return;
-    }
-    showAlert("danger", e.detail.xhr.response);
-});
-</script>
-		<script>
-let alertTimeout = null;
+			// Base64 decoder for UTF-8 strings (Cyrillic support)
+			function decodeBase64(str) {
+				try {
+					// Decode base64 to binary string
+					const binaryString = atob(str);
+					
+					// Convert binary string to UTF-8 bytes
+					const bytes = new Uint8Array(binaryString.length);
+					for (let i = 0; i < binaryString.length; i++) {
+						bytes[i] = binaryString.charCodeAt(i);
+					}
+					
+					// Decode UTF-8 bytes to string
+					return new TextDecoder('utf-8').decode(bytes);
+				} catch (e) {
+					console.warn('Failed to decode base64, returning raw:', str);
+					return str;
+				}
+			}
 
-function showAlert(type, message) {
-    const area = document.getElementById("error-area");
+			// Single event listener to handle all alerts
+			document.body.addEventListener('htmx:beforeSwap', function(evt) {
+				const xhr = evt.detail.xhr;
+				
+				// Handle error messages
+				if (evt.detail.isError) {
+					const errorMsg = xhr.getResponseHeader("HX-Error");
+					if (errorMsg) {
+						showAlert("danger", decodeBase64(errorMsg));
+						evt.detail.shouldSwap = false; // Don't swap content for errors
+						return; // Stop further processing
+					}
+				} 
+				// Handle success messages
+				else {
+					const successMsg = xhr.getResponseHeader("HX-Alert");
+					if (successMsg) {
+						showAlert("success", decodeBase64(successMsg));
+					}
+				}
+			});
 
-    if (alertTimeout) {
-        clearTimeout(alertTimeout);
-        alertTimeout = null;
-    }
+			// Fallback error handler (for errors without HX-Error header)
+			document.body.addEventListener("htmx:responseError", function (e) {
+				const xhr = e.detail.xhr;
+				
+				// If HX-Error header exists, it was already handled in beforeSwap
+				if (xhr.getResponseHeader("HX-Error")) {
+					e.preventDefault();
+					return;
+				}
+				
+				// Handle special warning status
+				if (xhr.status === 299) {
+					showAlert("warning", xhr.response);
+					e.preventDefault();
+				} 
+				// Fallback for other errors
+				else {
+					showAlert("danger", xhr.response || "An error occurred");
+				}
+			});
 
-    const icon = getIcon(type);
+			let alertTimeout = null;
 
-    area.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible shadow-lg fade show d-flex align-items-center gap-2 mb-0" role="alert" style="border-radius: .75rem;">
-            <i class="bi ${icon} fs-4"></i>
-            <div class="flex-fill">${message}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
+			function showAlert(type, message) {
+				const area = document.getElementById("alert-area");
 
-    area.style.display = "block";
+				if (alertTimeout) {
+					clearTimeout(alertTimeout);
+					alertTimeout = null;
+				}
 
-    alertTimeout = setTimeout(() => hideAlert(), 8000);
-}
-function hideAlert() {
-    const area = document.getElementById("alert-area");
-    area.innerHTML = "";
-    area.style.display = "none";
-}
-function getIcon(type) {
-    switch (type) {
-        case "danger": return "bi-exclamation-octagon-fill";
-        case "warning": return "bi-exclamation-triangle-fill";
-        case "success": return "bi-check-circle-fill";
-        case "info": return "bi-info-circle-fill";
-        default: return "bi-exclamation-circle-fill";
-    }
-}
+				const icon = getIcon(type);
 
-</script>
-		<script>
-        // Initialize popovers after DOM loads
-        document.addEventListener('DOMContentLoaded', function () {
-            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-                return new bootstrap.Popover(popoverTriggerEl);
-            });
-        });
-    </script>
-		<script>
-// Reinitialize Bootstrap components after HTMX swaps
-document.body.addEventListener('htmx:afterSwap', function() {
-    // Popovers
-    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
-        new bootstrap.Popover(el); // Bootstrap handles duplicates automatically in v5+
-    });
-});
-</script>
+				area.innerHTML = `
+					<div class="alert alert-${type} alert-dismissible shadow-lg fade show d-flex align-items-center gap-2 mb-0" role="alert" style="border-radius: .75rem;">
+						<i class="bi ${icon} fs-4"></i>
+						<div class="flex-fill">${message}</div>
+						<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+					</div>
+				`;
+
+				area.style.display = "block";
+
+				alertTimeout = setTimeout(() => {
+					area.innerHTML = "";
+					area.style.display = "none";
+				}, 8000);
+			}
+
+			function getIcon(type) {
+				switch (type) {
+					case "danger": return "bi-exclamation-octagon-fill";
+					case "warning": return "bi-exclamation-triangle-fill";
+					case "success": return "bi-check-circle-fill";
+					case "info": return "bi-info-circle-fill";
+					default: return "bi-exclamation-circle-fill";
+				}
+			}
+
+			// Initialize Bootstrap components
+			function initializeBootstrapComponents() {
+				document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+					new bootstrap.Popover(el);
+				});
+			}
+
+			document.addEventListener('DOMContentLoaded', initializeBootstrapComponents);
+			document.body.addEventListener('htmx:afterSwap', initializeBootstrapComponents);
+		</script>
 	</html>
 }
